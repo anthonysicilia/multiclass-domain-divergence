@@ -31,7 +31,7 @@ class Dataset(torch.utils.data.Dataset):
     def __init__(self, dataset, seed, keep=None, num_classes=None):
         set_random_seed(seed)
         # makes changes to global seed !!!
-        indices = keep if keep is not None else range(self.n)
+        indices = keep if keep is not None else range(len(dataset))
         self.dataset = []
         for index in indices:
             self.dataset.append(dataset[index])
@@ -53,7 +53,7 @@ def make_frozenset(dset, train=True, seed=0, num_classes=None):
     x = [scoped_random.random() for _ in range(len(dset))]
     comp = operator.le if train else operator.gt
     train = lambda xi: comp(xi, 0.5)
-    indices = [i for i,xi in enumerate(x) if train(xi)]
+    indices = [i for i, xi in enumerate(x) if train(xi)]
     return Dataset(dset, seed, keep=indices, 
         num_classes=num_classes)
 

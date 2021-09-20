@@ -28,16 +28,21 @@ def lazy_kwarg_init(init, **kwargs):
     
     return LazyCallable(init, kwargs)
 
-def stack(dataset):
+def stack(dataset, max_samples=None):
     if type(dataset[0]) != tuple:
         raise ValueError('If dataset.__getitem__(...) does not'
             ' return tuples, this function may malfunction.'
             ' Please, ensure dataset.__getitem__(...) returns'
             ' a tuple; e.g., return "(x, )" in place of "x".'
             f' The misused type was {type(dataset[0])}.')
-    return torch.cat([x.reshape(1, -1) if torch.is_tensor(x)
+    arr = [x.reshape(1, -1) if torch.is_tensor(x)
         else torch.tensor(x.reshape(1, -1)) 
-        for x, *_ in dataset])
+        for x, *_ in dataset]
+    if max_samples is not None and len(arr) > max_samples:
+        shuffle(arr)
+        return torch.cat(arr)[:max_samples]
+    else:
+        return torch.cat(arr)
 
 def approx_median_distance(a, b, nsamples=100, seed=None):
     pooled = [(x, _) for x,*_ in a] + [(x, _) for x,*_ in b]

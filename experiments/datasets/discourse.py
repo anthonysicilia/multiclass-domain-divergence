@@ -75,7 +75,7 @@ class Dataset(torch.utils.data.Dataset):
         def __init__(self, vecs, labels):
             self.vecs = vecs
             self.labels = labels
-            self.num_classes = max(set(labels))
+            self.num_classes = max(set(labels)) + 1
             # not really needed anymore, always 768 or tokens
             # try:
             #     self.input_sz = vecs[0].shape[0]

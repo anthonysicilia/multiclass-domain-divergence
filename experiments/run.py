@@ -1,4 +1,5 @@
 import argparse
+from experiments.estimators.base import Estimator
 import numpy as np
 import random
 import pandas as pd
@@ -6,94 +7,199 @@ import torch
 
 from tqdm import tqdm
 
-from .datasets.digits import DATASETS as DIGITS_DATASETS
+from .datasets.digits import DATASETS as DIGITS_DATASETS, \
+    ROTATION_PAIRS, NOISY_PAIRS, FAKE_PAIRS
 from .datasets.discourse import PDTB_DATASETS, GUM_DATASETS
-from .datasets.images import PACS_DATASETS, OFFICEHOME_DATASETS
+from .datasets.images import PACS_DATASETS, OFFICEHOME_DATASETS, \
+    PACS_FTS_DATASETS, OFFICEHOME_FTS_DATASETS
 from .datasets.utils import Multisource
 from .estimators.bbsd import Estimator as BBSDEstimator
+from .estimators.bendavid_lambda import Estimator \
+    as BenDavidLambdaEstimator
 from .estimators.error import Estimator as Error
 from .estimators.erm import PyTorchEstimator as HypothesisEstimator
 from .estimators.hypothesis_divergence import Estimator \
     as HypothesisDivergence
 from .estimators.hypothesis_class_divergence import Estimator \
     as HypothesisClassDivergence
+from .estimators.monte_carlo import Estimator as MonteCarloEstimator
+from .estimators.stoch_disagreement import Estimator \
+    as StochDisagreementEstimator
+from .estimators.stoch_joint_error import Estimator \
+    as StochJointErrorEstimator
 from .estimators.two_sample import Estimator as TwoSampleEstimator
 from .models.digits import DigitsHypothesisSpace
 from .models.discourse import LinearHypothesisSpace, \
     NonLinearHypothesisSpace
 from .models.images import ResNet18HypothesisSpace, \
     ResNet50HypothesisSpace
-from .utils import lazy_kwarg_init, PlaceHolderEstimator, \
-    set_random_seed
+from .models.stochastic import Stochastic
+from .utils import PlaceHolderEstimator, lazy_kwarg_init, set_random_seed
 
 MIN_TRAIN_SAMPLES = 1000
+MC_SAMPLES = 10_000
+SIGMA_PRIOR = 0.01
 
 GROUPS = [
+    # {
+    #     'name' : 'digits',
+    #     'datasets' : DIGITS_DATASETS,
+    #     'multisource' : False,
+    #     'make_pairs' : True,
+    #     'two_sample' : True,
+    #     'models' : [('cnn4l', DigitsHypothesisSpace)]
+    # },
+
+    # {
+    #     'name' : 'r_digits',
+    #     'datasets' : ROTATION_PAIRS,
+    #     'multisource' : False,
+    #     'make_pairs' : False,
+    #     'two_sample' : True,
+    #     'models' : [('cnn4l', DigitsHypothesisSpace)]
+    # },
+
     {
-        'datasets' : DIGITS_DATASETS,
+        'name' : 'n_digits',
+        'datasets' : NOISY_PAIRS,
         'multisource' : False,
+        'make_pairs' : False,
+        'two_sample' : True,
         'models' : [('cnn4l', DigitsHypothesisSpace)]
     },
 
     {
-        'datasets' : PACS_DATASETS,
+        'name' : 'f_digits',
+        'datasets' : FAKE_PAIRS,
         'multisource' : False,
-        'models' : [('rn18', ResNet18HypothesisSpace)]
+        'make_pairs' : False,
+        'two_sample' : True,
+        'models' : [('cnn4l', DigitsHypothesisSpace)]
     },
 
+    # Q: runs 10x longer after exp 42 ?? 
+    # A: photo too small to train
+    # {
+    #     'name' : 'pacs',
+    #     'datasets' : PACS_DATASETS,
+    #     'multisource' : False,
+    #     'make_pairs' : True,
+    #     'two_sample' : False,
+    #     'models' : [('rn18', ResNet18HypothesisSpace)]
+    # },
+
+    # {
+    #     'name' : 'officehome',
+    #     'datasets' : OFFICEHOME_DATASETS,
+    #     'multisource' : False,
+    #     'make_pairs' : True,
+    #     'two_sample' : False,
+    #     'models' : [('rn50', ResNet50HypothesisSpace)]
+    # },
+
     {
-        'datasets' : OFFICEHOME_DATASETS,
+        'name' : 'officehome_fts',
+        'datasets' : OFFICEHOME_FTS_DATASETS,
         'multisource' : False,
-        'models' : [('rn50', ResNet50HypothesisSpace)]
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [
+            ('lin', lazy_kwarg_init(LinearHypothesisSpace, 
+                num_inputs=2048)),
+            ('fc4l', lazy_kwarg_init(NonLinearHypothesisSpace, 
+                num_inputs=2048))]
     },
 
     {
-        'datasets' : PDTB_DATASETS('sentence'),
-        'multisource' : False, 
-        'models' : [('lin', LinearHypothesisSpace),
-            ('fc4l', NonLinearHypothesisSpace)],
+        'name' : 'pacs_fts',
+        'datasets' : PACS_FTS_DATASETS,
+        'multisource' : False,
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [
+            ('lin', lazy_kwarg_init(LinearHypothesisSpace, 
+                num_inputs=2048)),
+            ('fc4l', lazy_kwarg_init(NonLinearHypothesisSpace, 
+                num_inputs=2048))]
     },
 
-    {
-        'datasets' : PDTB_DATASETS('average'),
-        'multisource' : False, 
-        'models' : [('lin', LinearHypothesisSpace),
-            ('fc4l', NonLinearHypothesisSpace)],
-    },
+    # {
+    #     'name' : 'pdtb_sentence',
+    #     'datasets' : PDTB_DATASETS('sentence'),
+    #     'multisource' : False, 
+    #     'make_pairs' : True,
+    #     'two_sample' : True,
+    #     'models' : [('lin', LinearHypothesisSpace),
+    #         ('fc4l', NonLinearHypothesisSpace)],
+    # },
 
-    {
-        'datasets' : PDTB_DATASETS('pooled'),
-        'multisource' : False, 
-        'models' : [('lin', LinearHypothesisSpace),
-            ('fc4l', NonLinearHypothesisSpace)],
-    },
+    # {
+    #     'name' : 'pdtb_average',
+    #     'datasets' : PDTB_DATASETS('average'),
+    #     'multisource' : False, 
+    #     'make_pairs' : True,
+    #     'two_sample' : True,
+    #     'models' : [('lin', LinearHypothesisSpace),
+    #         ('fc4l', NonLinearHypothesisSpace)],
+    # },
 
-    {
-        'datasets' : GUM_DATASETS('sentence'),
-        'multisource' : True, 
-        'models' : [('lin', LinearHypothesisSpace),
-            ('fc4l', NonLinearHypothesisSpace)],
-    },
+    # {
+    #     'name' : 'pdtb_pooled',
+    #     'datasets' : PDTB_DATASETS('pooled'),
+    #     'multisource' : False, 
+    #     'make_pairs' : True,
+    #     'two_sample' : True,
+    #     'models' : [('lin', LinearHypothesisSpace),
+    #         ('fc4l', NonLinearHypothesisSpace)],
+    # },
 
-    {
-        'datasets' : GUM_DATASETS('average'),
-        'multisource' : True, 
-        'models' : [('lin', LinearHypothesisSpace),
-            ('fc4l', NonLinearHypothesisSpace)],
-    },
+    # {
+    #     'name' : 'gum_sentence',
+    #     'datasets' : GUM_DATASETS('sentence'),
+    #     'multisource' : True, 
+    #     'make_pairs' : True,
+    #     'two_sample' : True,
+    #     'models' : [('lin', LinearHypothesisSpace),
+    #         ('fc4l', NonLinearHypothesisSpace)],
+    # },
 
-    {
-        'datasets' : GUM_DATASETS('pooled'),
-        'multisource' : True, 
-        'models' : [('lin', LinearHypothesisSpace),
-            ('fc4l', NonLinearHypothesisSpace)],
-    }
+    # {
+    #     'name' : 'gum_average',
+    #     'datasets' : GUM_DATASETS('average'),
+    #     'multisource' : True, 
+    #     'make_pairs' : True,
+    #     'two_sample' : True,
+    #     'models' : [('lin', LinearHypothesisSpace),
+    #         ('fc4l', NonLinearHypothesisSpace)],
+    # },
+
+    # {
+    #     'name' : 'gum_pooled',
+    #     'datasets' : GUM_DATASETS('pooled'),
+    #     'multisource' : True, 
+    #     'make_pairs' : True,
+    #     'two_sample' : True,
+    #     'models' : [('lin', LinearHypothesisSpace),
+    #         ('fc4l', NonLinearHypothesisSpace)],
+    # }
 
 ]
 
 # most popular seeds in python according to:
 # https://blog.semicolonsoftware.de/the-most-popular-random-seeds/
-SEEDS = [0, 1, 100, 1234, 12345]
+# SEEDS = [0, 1, 100, 1234, 12345]
+# use 0, 1, 100 for dataset seeds and 100, ... for exp seeds
+SEEDS = [100 , 1234, 12345]
+
+class SeededEstimator:
+
+    def __init__(self, estimator, seed):
+        self.seed = seed
+        self.estimator = estimator
+    
+    def compute(self):
+        set_random_seed(self.seed)
+        return self.estimator.compute()
 
 def _make_single_source_exps(group, dataset_seed):
     datasets = [
@@ -106,7 +212,7 @@ def _make_single_source_exps(group, dataset_seed):
         for j, t in enumerate(datasets)
         for seed in SEEDS
         for hspace in group['models']
-        if i != j and len(s[1]) >= MIN_TRAIN_SAMPLES]
+        if i != j]
     return exps
 
 def _make_multisource_exps(group, dataset_seed):
@@ -125,22 +231,143 @@ def _make_multisource_exps(group, dataset_seed):
                 source = ('+'.join(descs), Multisource(dsets))
                 exps.append((source, target, seed, hspace))
     return exps
+
+def _make_prepackaged_exps(group, dataset_seed):
+    exps = []
+    for (sname, s, tname, t) in group['datasets']:
+        for hspace in group['models']:
+            for seed in SEEDS:
+                s = lazy_kwarg_init(s, train=True, 
+                    seed=dataset_seed)
+                t = lazy_kwarg_init(t, train=True, 
+                    seed=dataset_seed)
+                source = (sname, s)
+                target = (tname, t)
+                exps.append((source, target, seed, hspace))
+    return exps
     
 def make_experiments(group, dataset_seed):
-    if group['multisource']:
-        return _make_multisource_exps(group, dataset_seed)
+    if group['make_pairs']:
+        if group['multisource']:
+            return _make_multisource_exps(group, dataset_seed)
+        else:
+            return _make_single_source_exps(group, dataset_seed)
     else:
-        return _make_single_source_exps(group, dataset_seed)
+        return _make_prepackaged_exps(group, dataset_seed)
 
-def run_experiment(source, target, hspace, experiment_seed,
+def disjoint_split(dataset, seed=0):
+
+    random.seed(seed)
+    indices = [(i, random.random() <= 0.5) 
+        for i in range(len(dataset))]
+    prefix = [i for i, b in indices if b]
+    bound = [i for i, b in indices if not b]
+
+    class Dataset:
+
+        def __init__(self, a, index_list):
+            self.index_list = index_list
+            self.a = a
+        
+        def __len__(self):
+            return len(self.index_list)
+        
+        def __getitem__(self, index):
+            data = self.a.__getitem__(self.index_list[index])
+            data[2] = index
+            return data
+    
+    return Dataset(dataset, prefix), Dataset(dataset, bound)
+
+def run_stoch_experiment(source, target, hspace, seed,
     verbose=False, device='cpu'):
+    prefix_source, bound_source = disjoint_split(source, seed)
+    prefix_source_samples = len(prefix_source)
+    bound_source_samples = len(bound_source)
+    target_samples = len(target)
+    hypothesis_space = hspace(num_classes=source.num_classes)
+    prior_estimator = HypothesisEstimator(hypothesis_space, 
+        prefix_source, verbose=verbose, device=device)
+    prior = SeededEstimator(prior_estimator, seed).compute()
+    stoch_hypothesis_space = Stochastic(hypothesis_space, 
+        prior=prior, m=bound_source_samples, delta=0.05,
+        sigma_prior=SIGMA_PRIOR)
+    posterior_estimator = HypothesisEstimator(
+        stoch_hypothesis_space, source, kl_reg=True, 
+        sample=True, cache=False, verbose=verbose, 
+        device=device)
+    posterior = SeededEstimator(posterior_estimator, 
+        seed).compute()
 
-    set_random_seed(experiment_seed)
+    estimators = {
+        'train_error' : lazy_kwarg_init(Error,
+            hypothesis=posterior, 
+            hypothesis_space=hypothesis_space, 
+            dataset=bound_source, verbose=verbose, device=device),
+
+        'transfer_error' : lazy_kwarg_init(Error, 
+            hypothesis=posterior, 
+            hypothesis_space=hypothesis_space, 
+            dataset=target, verbose=verbose, device=device),
+        
+        'source_dis' : lazy_kwarg_init(StochDisagreementEstimator,
+            hypothesis=posterior, 
+            hypothesis_space=stoch_hypothesis_space, 
+            dataset=bound_source, 
+            device=device, verbose=verbose, sample=True) ,
+        
+        'source_jerror' : lazy_kwarg_init(StochJointErrorEstimator,
+            hypothesis=posterior, 
+            hypothesis_space=stoch_hypothesis_space, 
+            dataset=bound_source, 
+            device=device, verbose=verbose, sample=True),
+        
+        'target_dis' : lazy_kwarg_init(StochDisagreementEstimator,
+            hypothesis=posterior, 
+            hypothesis_space=stoch_hypothesis_space, 
+            dataset=target, 
+            device=device, verbose=verbose, sample=True),
+        
+        'target_jerror' : lazy_kwarg_init(StochJointErrorEstimator,
+            hypothesis=posterior, 
+            hypothesis_space=stoch_hypothesis_space, 
+            dataset=target, 
+            device=device, verbose=verbose, sample=True),
+        
+        'our_h_divergence_stoch' : lazy_kwarg_init(
+            HypothesisDivergence,
+            hypothesis=posterior, 
+            hypothesis_space=stoch_hypothesis_space, 
+            a=bound_source, b=target, 
+            verbose=verbose, device=device),
+    }
+
+    estimators = {MonteCarloEstimator(MC_SAMPLES, e) 
+        for e in estimators}
+    
+    estimators['h_class_divergence_stoch'] = \
+        HypothesisClassDivergence(hypothesis_space, 
+        bound_source, target, verbose=verbose,
+        binary=False, device=device)
+        
+    estimators['ben_david_lambda_stoch'] = \
+        BenDavidLambdaEstimator(hypothesis_space, 
+        bound_source, target, 
+        device=device, verbose=verbose),
+    
+    raise NotImplementedError('Not debugged yet...')
+
+    return {k : SeededEstimator(e, seed).compute() 
+        for k, e in estimators.items()}
+
+def run_experiment(source, target, hspace, seed,
+    two_sample, verbose=False, device='cpu'):
+
     hypothesis_space = hspace(
         num_classes=source.num_classes)
-
-    hypothesis = HypothesisEstimator(hypothesis_space, 
-        source, verbose=verbose, device=device).compute()
+    hestimator = HypothesisEstimator(hypothesis_space, 
+        source, verbose=verbose, device=device)
+    hypothesis = SeededEstimator(hestimator, seed).compute()
 
     estimators = {
         'train_error' : Error(hypothesis, hypothesis_space,
@@ -156,6 +383,10 @@ def run_experiment(source, target, hspace, experiment_seed,
         'h_class_divergence' : HypothesisClassDivergence(
             hypothesis_space, source, target, verbose=verbose,
             binary=False, device=device),
+        
+        'ben_david_lambda' : BenDavidLambdaEstimator(
+            hypothesis_space, source, target, 
+            device=device, verbose=verbose),
 
         'mmd_bbsd' : BBSDEstimator(hypothesis, hypothesis_space,
             source, target, 'mmd', verbose=verbose, 
@@ -163,11 +394,13 @@ def run_experiment(source, target, hspace, experiment_seed,
     }
 
     for stat in TwoSampleEstimator.STATS:
+        # to big for gpu
         estimators[stat] = TwoSampleEstimator(stat, 
-            source, target, device=device)
-        # tokens ???
+            source, target, device=device) \
+                if two_sample else PlaceHolderEstimator()
             
-    return {k : e.compute() for k, e in estimators.items()}
+    return {k : SeededEstimator(e, seed).compute() 
+        for k, e in estimators.items()}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -181,18 +414,30 @@ if __name__ == '__main__':
     parser.add_argument('--device',
         default='cpu',
         help='The device to use for all experiments.')
+    parser.add_argument('--test',
+        action='store_true',
+        help='Take steps for a shorter run'
+        ' (results will be invalid).')
     args = parser.parse_args()
     data = []
-    for group_num, group in enumerate(GROUPS):
-        exps = make_experiments(group, args.dataset_seed)
+    for group in GROUPS:
+        print('group:', group['name'])
+        exps = tqdm(make_experiments(group, args.dataset_seed))
+        two_sample = group['two_sample']
         for (sname, s), (tname, t), seed, (hname, h) in exps:
-            res = run_experiment(s, t, h, seed, 
+            if args.test: # don't train to long
+                h = lazy_kwarg_init(h, epochs=1, 
+                    features_epochs=1)
+            s = s(); t = t()
+            if len(s) < MIN_TRAIN_SAMPLES:
+                continue
+            res = run_experiment(s, t, h, seed, two_sample,
                 verbose=args.verbose, device=args.device)
             res['source'] = sname
             res['target'] = tname
             res['dataset_seed'] = args.dataset_seed
             res['experiment_seed'] = seed
-            res['group_num'] = group_num
+            res['group_num'] = group['name']
             res['hspace'] = hname
             data.append(res)
             # incrementally save results

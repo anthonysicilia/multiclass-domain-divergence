@@ -1,0 +1,13 @@
+*.vscode
+*__pycache__
+*.pkl
+*.png
+*.csv
+*.jpg
+*.pt
+*.txt
+MNIST/
+OfficeHome/
+PACS/
+SVHN/
+results/

@@ -2,6 +2,7 @@ import torch
 
 from tqdm import tqdm
 
+from ..models.stochastic import sample as sample_model
 from .base import Estimator as BaseEstimator
 from .expectation import Estimator as Mean
 from .erm import PyTorchEstimator as HypothesisEstimator
@@ -59,10 +60,12 @@ class DisagreementSet(torch.utils.data.Dataset):
 class Estimator(BaseEstimator):
 
     def __init__(self, hypothesis, hypothesis_space, a, b, 
-        device='cpu', verbose=False):
+        device='cpu', verbose=False, sample=False):
         super().__init__()
         self.hypothesis = hypothesis.to(device)
         self.hspace = hypothesis_space
+        with torch.no_grad():
+            if sample: sample_model(self.hypothesis)
         self.a = a
         self.b = b
         self.device = device

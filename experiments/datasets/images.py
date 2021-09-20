@@ -1,8 +1,11 @@
+import pickle
 import torch
 import torchvision as tv
 
 from PIL import Image
+from random import Random
 
+from .discourse import Dataset as FeatureSet
 from .utils import make_frozenset
 
 IMAGE_MEANS = [0.485, 0.456, 0.406]
@@ -15,7 +18,7 @@ class ImageSet(torch.utils.data.Dataset):
         lines = [p.strip().split() for p in open(path_file, 'r')]
         self.paths = [f'{root}/{path}' for path, _ in lines]
         self.labels = [int(label) - 1 for _, label in lines]
-        self.num_classes = max(set(self.labels))
+        self.num_classes = max(set(self.labels)) + 1
         self.transforms = transforms
 
     def __len__(self):
@@ -103,6 +106,49 @@ OFFICEHOME_DATASETS = [
     ('oh_product', officehome_product), 
     ('oh_clipart', officehome_clipart)]
 
-PACS_FT_DATASETS = []
-OFFICEHOME_FT_DATASETS = []
+def _ft_vectors(parent, domain, train, seed):
+    loc = open(f'{parent}_{domain}_rn50fts.pkl', 'rb')
+    data = pickle.load(loc)
+    scoped_random = Random(seed)
+    scoped_random.shuffle(data)
+    n = len(data) // 2
+    if train is not None:
+        data = data[:n] if train else data[n:]
+    return FeatureSet([x for x,_ in data], [y for _,y in data])
+
+def pacs_photo_fts(train=True, seed=0):
+    return _ft_vectors('pacs', 'photo', train, seed)
+
+def pacs_art_fts(train=True, seed=0):
+    return _ft_vectors('pacs', 'art', train, seed)
+
+def pacs_cartoon_fts(train=True, seed=0):
+    return _ft_vectors('pacs', 'cartoon', train, seed)
+
+def pacs_sketch_fts(train=True, seed=0):
+    return _ft_vectors('pacs', 'sketch', train, seed)
+
+def officehome_world_fts(train=True, seed=0):
+    return _ft_vectors('oh', 'world', train, seed)
+
+def officehome_art_fts(train=True, seed=0):
+    return _ft_vectors('oh', 'art', train, seed)
+
+def officehome_product_fts(train=True, seed=0):
+    return _ft_vectors('oh', 'product', train, seed)
+
+def officehome_clipart_fts(train=True, seed=0):
+    return _ft_vectors('oh', 'clipart', train, seed)
+
+PACS_FTS_DATASETS = [
+    ('pacs_photo_fts', pacs_photo_fts), 
+    ('pacs_art_fts', pacs_art_fts), 
+    ('pacs_cartoon_fts', pacs_cartoon_fts), 
+    ('pacs_sketch_fts', pacs_sketch_fts)]
+
+OFFICEHOME_FTS_DATASETS = [
+    ('oh_world_fts', officehome_world_fts), 
+    ('oh_art_fts', officehome_art_fts),
+    ('oh_product_fts', officehome_product_fts), 
+    ('oh_clipart_fts', officehome_clipart_fts)]
 

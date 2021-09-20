@@ -121,12 +121,25 @@ def fake(train=True, seed=0):
 
 DATASETS = [
     ('mnist', mnist), 
-    ('svhn', svhn), 
-    ('usps', usps), 
-    ('fake', fake),
-    ('r_mnist', rotated_mnist),
-    ('r_svhn', rotated_svhn),
-    ('r_usps', rotated_usps),
-    ('n_mnist', noisy_mnist),
-    ('n_svhn', noisy_svhn),
-    ('n_usps', noisy_usps)]
+    ('svhn', svhn) 
+    # not available in torchvision 0.2.2
+    # ('usps', usps)
+]
+
+ROTATION_PAIRS = [
+    # ('usps', usps, 'r_usps', rotated_usps),  
+    ('mnist', mnist, 'r_mnist', rotated_mnist), 
+    ('svhn', svhn, 'r_svhn', rotated_svhn)
+]
+
+NOISY_PAIRS = [
+    # ('usps', usps, 'n_usps', noisy_usps), 
+    ('mnist', mnist, 'n_mnist', noisy_mnist), 
+    ('svhn', svhn, 'n_svhn', noisy_svhn)
+]
+
+FAKE_PAIRS = [
+    # ('usps', usps, 'fake', fake),
+    ('mnist', mnist, 'fake', fake), 
+    ('svhn', svhn, 'fake', fake), 
+]

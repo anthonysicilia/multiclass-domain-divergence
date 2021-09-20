@@ -1,8 +1,10 @@
 import torch
 import torch.nn.functional as F
 
+from math import log, expm1
+
 from ..bounds.functional import dziugaite_variational_bound
-from ..estimators.erm import PyTorchHypothesisSpace
+from .learners import PyTorchHypothesisSpace
 
 class Gaussian(torch.nn.Module):
     """
@@ -328,7 +330,8 @@ class Stochastic(PyTorchHypothesisSpace):
         torch.nn.ConvTranspose2d : ProbConvTranspose2d
     }
 
-    def __init__(self, hypothesis_space, m=1000, delta=0.05):
+    def __init__(self, hypothesis_space, prior=None, m=1000, delta=0.05,
+        sigma_prior=0.01):
         super().__init__(
             hypothesis_space.num_classes,
             hypothesis_space.epochs,
@@ -339,6 +342,8 @@ class Stochastic(PyTorchHypothesisSpace):
         self.underlying = hypothesis_space
         self.m = m
         self.delta = delta
+        self.prior = prior
+        self.rho_prior = log(expm1(sigma_prior))
     
     def _make_stochastic(self, module, rho_prior, dist='gaussian', 
         device='cuda'):
@@ -365,7 +370,9 @@ class Stochastic(PyTorchHypothesisSpace):
     
     def __call__(self):
         h = self.underlying()
-        self._make_stochastic(h)
+        if self.prior is not None:
+            h.load_state_dict(self.prior.state_dict())
+        self._make_stochastic(h, self.rho_prior)
         return h
     
     def loss_fn(self, yhat, y, w=None, h=None):
