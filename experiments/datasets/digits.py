@@ -116,30 +116,31 @@ def fake(train=True, seed=0):
         tv.transforms.Normalize((IMAGE_MEAN,), (IMAGE_STD,))])
     dset = tv.datasets.FakeData(size=60_000, image_size=(28, 28), 
         num_classes=10, transform=transform, random_offset=seed)
+    dset = [(x, y.item()) for x,y in dset]
     return make_frozenset(dset, train=train, seed=seed, 
         num_classes=10)
 
 DATASETS = [
     ('mnist', mnist), 
-    ('svhn', svhn) 
+    ('svhn', svhn), 
     # not available in torchvision 0.2.2
-    # ('usps', usps)
+    ('usps', usps)
 ]
 
 ROTATION_PAIRS = [
-    # ('usps', usps, 'r_usps', rotated_usps),  
+    ('usps', usps, 'r_usps', rotated_usps),  
     ('mnist', mnist, 'r_mnist', rotated_mnist), 
     ('svhn', svhn, 'r_svhn', rotated_svhn)
 ]
 
 NOISY_PAIRS = [
-    # ('usps', usps, 'n_usps', noisy_usps), 
+    ('usps', usps, 'n_usps', noisy_usps), 
     ('mnist', mnist, 'n_mnist', noisy_mnist), 
     ('svhn', svhn, 'n_svhn', noisy_svhn)
 ]
 
 FAKE_PAIRS = [
-    # ('usps', usps, 'fake', fake),
+    ('usps', usps, 'fake', fake),
     ('mnist', mnist, 'fake', fake), 
     ('svhn', svhn, 'fake', fake), 
 ]

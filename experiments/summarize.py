@@ -6,7 +6,16 @@ from pathlib import Path
 from scipy.stats import spearmanr, pearsonr, linregress
 
 PATHS = [
-    'results-0.csv']
+    'results-n_digits-0-100.csv',
+    'results-n_digits-0-1234.csv',
+    'results-n_digits-0-12345.csv',
+    'results-officehome_fts-0-100.csv',
+    'results-officehome_fts-0-1234.csv',
+    'results-officehome_fts-0-12345.csv',
+    'results-pacs_fts-0-100.csv',
+    'results-pacs_fts-0-1234.csv',
+    'results-pacs_fts-0-12345.csv'
+]
 
 STAT_COLUMNS = ['our_h_divergence', 'h_class_divergence',
     'mmd_bbsd', 'mmd', 'energy', 'frs', 'knn']
@@ -54,6 +63,7 @@ def summarize(df, write_loc, norm=False, norm_col=None):
 
 if __name__ == '__main__':
     results = pd.concat([pd.read_csv(p) for p in PATHS])
+    results.to_csv('results-all.csv')
     summarize(results.copy(), 'results/agg')
 
             

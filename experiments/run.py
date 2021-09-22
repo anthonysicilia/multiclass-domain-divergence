@@ -1,11 +1,11 @@
 import argparse
-from experiments.estimators.base import Estimator
 import numpy as np
 import random
 import pandas as pd
 import torch
 
-from tqdm import tqdm
+from pathlib import Path
+# from tqdm import tqdm
 
 from .datasets.digits import DATASETS as DIGITS_DATASETS, \
     ROTATION_PAIRS, NOISY_PAIRS, FAKE_PAIRS
@@ -40,26 +40,26 @@ MIN_TRAIN_SAMPLES = 1000
 MC_SAMPLES = 10_000
 SIGMA_PRIOR = 0.01
 
-GROUPS = [
-    # {
-    #     'name' : 'digits',
-    #     'datasets' : DIGITS_DATASETS,
-    #     'multisource' : False,
-    #     'make_pairs' : True,
-    #     'two_sample' : True,
-    #     'models' : [('cnn4l', DigitsHypothesisSpace)]
-    # },
+GROUPS = {
+    'digits' : {
+        'name' : 'digits',
+        'datasets' : DIGITS_DATASETS,
+        'multisource' : False,
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('cnn4l', DigitsHypothesisSpace)]
+    },
 
-    # {
-    #     'name' : 'r_digits',
-    #     'datasets' : ROTATION_PAIRS,
-    #     'multisource' : False,
-    #     'make_pairs' : False,
-    #     'two_sample' : True,
-    #     'models' : [('cnn4l', DigitsHypothesisSpace)]
-    # },
+    'r_digits' : {
+        'name' : 'r_digits',
+        'datasets' : ROTATION_PAIRS,
+        'multisource' : False,
+        'make_pairs' : False,
+        'two_sample' : True,
+        'models' : [('cnn4l', DigitsHypothesisSpace)]
+    },
 
-    {
+    'n_digits' : {
         'name' : 'n_digits',
         'datasets' : NOISY_PAIRS,
         'multisource' : False,
@@ -68,7 +68,7 @@ GROUPS = [
         'models' : [('cnn4l', DigitsHypothesisSpace)]
     },
 
-    {
+    'f_digits' : {
         'name' : 'f_digits',
         'datasets' : FAKE_PAIRS,
         'multisource' : False,
@@ -79,25 +79,25 @@ GROUPS = [
 
     # Q: runs 10x longer after exp 42 ?? 
     # A: photo too small to train
-    # {
-    #     'name' : 'pacs',
-    #     'datasets' : PACS_DATASETS,
-    #     'multisource' : False,
-    #     'make_pairs' : True,
-    #     'two_sample' : False,
-    #     'models' : [('rn18', ResNet18HypothesisSpace)]
-    # },
+    'pacs' : {
+        'name' : 'pacs',
+        'datasets' : PACS_DATASETS,
+        'multisource' : False,
+        'make_pairs' : True,
+        'two_sample' : False,
+        'models' : [('rn18', ResNet18HypothesisSpace)]
+    },
 
-    # {
-    #     'name' : 'officehome',
-    #     'datasets' : OFFICEHOME_DATASETS,
-    #     'multisource' : False,
-    #     'make_pairs' : True,
-    #     'two_sample' : False,
-    #     'models' : [('rn50', ResNet50HypothesisSpace)]
-    # },
+    'officehome' : {
+        'name' : 'officehome',
+        'datasets' : OFFICEHOME_DATASETS,
+        'multisource' : False,
+        'make_pairs' : True,
+        'two_sample' : False,
+        'models' : [('rn50', ResNet50HypothesisSpace)]
+    },
 
-    {
+    'officehome_fts' : {
         'name' : 'officehome_fts',
         'datasets' : OFFICEHOME_FTS_DATASETS,
         'multisource' : False,
@@ -110,7 +110,7 @@ GROUPS = [
                 num_inputs=2048))]
     },
 
-    {
+    'pacs_fts' : {
         'name' : 'pacs_fts',
         'datasets' : PACS_FTS_DATASETS,
         'multisource' : False,
@@ -123,73 +123,73 @@ GROUPS = [
                 num_inputs=2048))]
     },
 
-    # {
-    #     'name' : 'pdtb_sentence',
-    #     'datasets' : PDTB_DATASETS('sentence'),
-    #     'multisource' : False, 
-    #     'make_pairs' : True,
-    #     'two_sample' : True,
-    #     'models' : [('lin', LinearHypothesisSpace),
-    #         ('fc4l', NonLinearHypothesisSpace)],
-    # },
+    'pdtb_sentence' : {
+        'name' : 'pdtb_sentence',
+        'datasets' : PDTB_DATASETS('sentence'),
+        'multisource' : False, 
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
 
-    # {
-    #     'name' : 'pdtb_average',
-    #     'datasets' : PDTB_DATASETS('average'),
-    #     'multisource' : False, 
-    #     'make_pairs' : True,
-    #     'two_sample' : True,
-    #     'models' : [('lin', LinearHypothesisSpace),
-    #         ('fc4l', NonLinearHypothesisSpace)],
-    # },
+    'pdtb_average' : {
+        'name' : 'pdtb_average',
+        'datasets' : PDTB_DATASETS('average'),
+        'multisource' : False, 
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
 
-    # {
-    #     'name' : 'pdtb_pooled',
-    #     'datasets' : PDTB_DATASETS('pooled'),
-    #     'multisource' : False, 
-    #     'make_pairs' : True,
-    #     'two_sample' : True,
-    #     'models' : [('lin', LinearHypothesisSpace),
-    #         ('fc4l', NonLinearHypothesisSpace)],
-    # },
+    'pdtb_pooled' : {
+        'name' : 'pdtb_pooled',
+        'datasets' : PDTB_DATASETS('pooled'),
+        'multisource' : False, 
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
 
-    # {
-    #     'name' : 'gum_sentence',
-    #     'datasets' : GUM_DATASETS('sentence'),
-    #     'multisource' : True, 
-    #     'make_pairs' : True,
-    #     'two_sample' : True,
-    #     'models' : [('lin', LinearHypothesisSpace),
-    #         ('fc4l', NonLinearHypothesisSpace)],
-    # },
+    'gum_sentence' : {
+        'name' : 'gum_sentence',
+        'datasets' : GUM_DATASETS('sentence'),
+        'multisource' : True, 
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
 
-    # {
-    #     'name' : 'gum_average',
-    #     'datasets' : GUM_DATASETS('average'),
-    #     'multisource' : True, 
-    #     'make_pairs' : True,
-    #     'two_sample' : True,
-    #     'models' : [('lin', LinearHypothesisSpace),
-    #         ('fc4l', NonLinearHypothesisSpace)],
-    # },
+    'gum_average' : {
+        'name' : 'gum_average',
+        'datasets' : GUM_DATASETS('average'),
+        'multisource' : True, 
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
 
-    # {
-    #     'name' : 'gum_pooled',
-    #     'datasets' : GUM_DATASETS('pooled'),
-    #     'multisource' : True, 
-    #     'make_pairs' : True,
-    #     'two_sample' : True,
-    #     'models' : [('lin', LinearHypothesisSpace),
-    #         ('fc4l', NonLinearHypothesisSpace)],
-    # }
+    'gum_pooled' : {
+        'name' : 'gum_pooled',
+        'datasets' : GUM_DATASETS('pooled'),
+        'multisource' : True, 
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    }
 
-]
+}
 
 # most popular seeds in python according to:
 # https://blog.semicolonsoftware.de/the-most-popular-random-seeds/
 # SEEDS = [0, 1, 100, 1234, 12345]
 # use 0, 1, 100 for dataset seeds and 100, ... for exp seeds
-SEEDS = [100 , 1234, 12345]
+# SEEDS = [100 , 1234, 12345]
 
 class SeededEstimator:
 
@@ -207,10 +207,9 @@ def _make_single_source_exps(group, dataset_seed):
             train=train, seed=dataset_seed))
         for desc, dset in group['datasets'] 
         for train in [True, False]]
-    exps = [(s, t, seed, hspace) 
+    exps = [(s, t, hspace) 
         for i, s in enumerate(datasets)
         for j, t in enumerate(datasets)
-        for seed in SEEDS
         for hspace in group['models']
         if i != j]
     return exps
@@ -221,29 +220,27 @@ def _make_multisource_exps(group, dataset_seed):
         for desc, dset in group['datasets']]
     exps = []
     for i in range(len(datasets)):
-        for seed in SEEDS:
-            for hspace in group['models']:
-                target = datasets[i]
-                source = [t for j,t in enumerate(datasets) 
-                    if j != i]
-                descs = [t[0] for t in source]
-                dsets = [t[1] for t in source]
-                source = ('+'.join(descs), Multisource(dsets))
-                exps.append((source, target, seed, hspace))
+        for hspace in group['models']:
+            target = datasets[i]
+            source = [t for j,t in enumerate(datasets) 
+                if j != i]
+            descs = [t[0] for t in source]
+            dsets = [t[1] for t in source]
+            source = ('+'.join(descs), Multisource(dsets))
+            exps.append((source, target, hspace))
     return exps
 
 def _make_prepackaged_exps(group, dataset_seed):
     exps = []
     for (sname, s, tname, t) in group['datasets']:
         for hspace in group['models']:
-            for seed in SEEDS:
-                s = lazy_kwarg_init(s, train=True, 
-                    seed=dataset_seed)
-                t = lazy_kwarg_init(t, train=True, 
-                    seed=dataset_seed)
-                source = (sname, s)
-                target = (tname, t)
-                exps.append((source, target, seed, hspace))
+            s = lazy_kwarg_init(s, train=True, 
+                seed=dataset_seed)
+            t = lazy_kwarg_init(t, train=True, 
+                seed=dataset_seed)
+            source = (sname, s)
+            target = (tname, t)
+            exps.append((source, target, hspace))
     return exps
     
 def make_experiments(group, dataset_seed):
@@ -281,6 +278,9 @@ def disjoint_split(dataset, seed=0):
 
 def run_stoch_experiment(source, target, hspace, seed,
     verbose=False, device='cpu'):
+
+    raise NotImplementedError('Not debugged yet...')
+
     prefix_source, bound_source = disjoint_split(source, seed)
     prefix_source_samples = len(prefix_source)
     bound_source_samples = len(bound_source)
@@ -354,8 +354,6 @@ def run_stoch_experiment(source, target, hspace, seed,
         BenDavidLambdaEstimator(hypothesis_space, 
         bound_source, target, 
         device=device, verbose=verbose),
-    
-    raise NotImplementedError('Not debugged yet...')
 
     return {k : SeededEstimator(e, seed).compute() 
         for k, e in estimators.items()}
@@ -404,14 +402,24 @@ def run_experiment(source, target, hspace, seed,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--group',
+        type=str,
+        default='digits',
+        help='The group of experiments to run.')
     parser.add_argument('--verbose',
         action='store_true',
         help='Use verbose option for all estimators.')
     # making this an argument to help make parallel
     parser.add_argument('--dataset_seed',
         default=0,
+        type=int,
         help='The seed to use for the dataset.')
+    parser.add_argument('--experiment_seed',
+        default=100,
+        type=int,
+        help='The seed to use for the experiment.')
     parser.add_argument('--device',
+        type=str,
         default='cpu',
         help='The device to use for all experiments.')
     parser.add_argument('--test',
@@ -420,26 +428,36 @@ if __name__ == '__main__':
         ' (results will be invalid).')
     args = parser.parse_args()
     data = []
-    for group in GROUPS:
-        print('group:', group['name'])
-        exps = tqdm(make_experiments(group, args.dataset_seed))
-        two_sample = group['two_sample']
-        for (sname, s), (tname, t), seed, (hname, h) in exps:
-            if args.test: # don't train to long
-                h = lazy_kwarg_init(h, epochs=1, 
-                    features_epochs=1)
-            s = s(); t = t()
-            if len(s) < MIN_TRAIN_SAMPLES:
-                continue
-            res = run_experiment(s, t, h, seed, two_sample,
-                verbose=args.verbose, device=args.device)
-            res['source'] = sname
-            res['target'] = tname
-            res['dataset_seed'] = args.dataset_seed
-            res['experiment_seed'] = seed
-            res['group_num'] = group['name']
-            res['hspace'] = hname
-            data.append(res)
-            # incrementally save results
-            write_loc = f'results-{args.dataset_seed}.csv'
-            pd.DataFrame(data).to_csv(write_loc)
+    group = GROUPS[args.group]
+    print('group:', group['name'])
+    exps = make_experiments(group, args.dataset_seed)
+    enumber = 1
+    print('Num exps:', len(exps))
+    # exps = tqdm(make_experiments(group, args.dataset_seed))
+    two_sample = group['two_sample']
+    for (sname, s), (tname, t), (hname, h) in exps:
+        if args.test: # don't train to long
+            h = lazy_kwarg_init(h, epochs=1, 
+                features_epochs=1)
+        s = s(); t = t()
+        if len(s) < MIN_TRAIN_SAMPLES:
+            continue
+        res = run_experiment(s, t, h, args.experiment_seed, 
+            two_sample, verbose=args.verbose, 
+            device=args.device)
+        res['source'] = sname
+        res['target'] = tname
+        res['dataset_seed'] = args.dataset_seed
+        res['experiment_seed'] = args.experiment_seed
+        res['group_num'] = group['name']
+        res['hspace'] = hname
+        data.append(res)
+        # incrementally save results
+        g = group['name']
+        ds = args.dataset_seed
+        es = args.experiment_seed
+        Path('out/results').mkdir(parents=True, 
+            exist_ok=True)
+        write_loc = f'out/results/{g}-{ds}-{es}.csv'
+        pd.DataFrame(data).to_csv(write_loc)
+        print('Done', enumber); enumber += 1

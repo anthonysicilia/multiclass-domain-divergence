@@ -5,7 +5,7 @@ from .erm import PyTorchEstimator as HypothesisEstimator
 from .expectation import Estimator as Mean
 from .utils import to_device
 
-class JointSet(torch.uilts.data.Dataset):
+class JointSet(torch.utils.data.Dataset):
 
     def __init__(self, a, b):
         self.a = a
@@ -19,6 +19,7 @@ class JointSet(torch.uilts.data.Dataset):
     def __getitem__(self, index):
         oidx = index
         if index >= len(self.a):
+            index = index - len(self.a)
             x, y, *_ = self.b.__getitem__(index)
             return (x, y, oidx, self.weight_b)
         else:
@@ -29,6 +30,7 @@ class Estimator(BaseEstimator):
 
     def __init__(self, hypothesis_space, a, b,
         device='cpu', verbose=False):
+        super().__init__()
         self.a = a
         self.b = b
         self.hspace = hypothesis_space
