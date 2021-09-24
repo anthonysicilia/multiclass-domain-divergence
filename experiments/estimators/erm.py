@@ -12,6 +12,9 @@ from .utils import to_device
 
 class PyTorchEstimator(BaseEstimator):
 
+    # f'{5e-4:.3f}' = '0.001'; f'{4.9e-4:.3f}' = '0.000'
+    TOLERANCE = 5e-4
+
     def __init__(self, hypothesis_space, dataset, device='cpu',
         verbose=False, catch_weights=False, sample=False, 
         kl_reg=False, cache=True):
@@ -105,6 +108,8 @@ class PyTorchEstimator(BaseEstimator):
             if self.verbose:
                 epoch_iterator.set_postfix(
                     {'error' : error.compute()})
+            if error.compute() < self.TOLERANCE:
+                break
             for s in schedulers: s.step()
         return hypothesis.eval()
 

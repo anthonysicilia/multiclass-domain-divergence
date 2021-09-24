@@ -1,21 +1,12 @@
 import matplotlib.pyplot as plt
+import os
 import pandas as pd
 import seaborn as sns; sns.set(style='whitegrid')
 
 from pathlib import Path
 from scipy.stats import spearmanr, pearsonr, linregress
 
-PATHS = [
-    'results-n_digits-0-100.csv',
-    'results-n_digits-0-1234.csv',
-    'results-n_digits-0-12345.csv',
-    'results-officehome_fts-0-100.csv',
-    'results-officehome_fts-0-1234.csv',
-    'results-officehome_fts-0-12345.csv',
-    'results-pacs_fts-0-100.csv',
-    'results-pacs_fts-0-1234.csv',
-    'results-pacs_fts-0-12345.csv'
-]
+PATHS = [f'out/results/{x}' for x in os.listdir('out/results')]
 
 STAT_COLUMNS = ['our_h_divergence', 'h_class_divergence',
     'mmd_bbsd', 'mmd', 'energy', 'frs', 'knn']
