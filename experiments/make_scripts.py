@@ -18,8 +18,8 @@ python3 -m experiments.run \\
     --device='cuda:0' \\
     --dataset_seed=0 \\
     --experiment_seed=1234 \\
-    --group='officehome_fts' \\
-    > out/logs/officehome_fts_0_1234.txt 2>&1 &
+    --group='{group}' \\
+    > out/logs/{group}_0_1234.txt 2>&1 &
 PID1=$!
 
 CUDA_VISIBLE_DEVICES={gpu} \\
@@ -27,8 +27,8 @@ python3 -m experiments.run \\
     --device='cuda:0' \\
     --dataset_seed=0 \\
     --experiment_seed=12345 \\
-    --group='officehome_fts' \\
-    > out/logs/officehome_fts_0_12345.txt 2>&1 &
+    --group='{group}' \\
+    > out/logs/{group}_0_12345.txt 2>&1 &
 PID2=$!
 
 CUDA_VISIBLE_DEVICES={gpu} \\
@@ -36,8 +36,8 @@ python3 -m experiments.run \\
     --device='cuda:0' \\
     --dataset_seed=1 \\
     --experiment_seed=100 \\
-    --group='officehome_fts' \\
-    > out/logs/officehome_fts_1_100.txt 2>&1 &
+    --group='{group}' \\
+    > out/logs/{group}_1_100.txt 2>&1 &
 PID3=$!
 
 CUDA_VISIBLE_DEVICES={gpu} \\
@@ -45,8 +45,8 @@ python3 -m experiments.run \\
     --device='cuda:0' \\
     --dataset_seed=1 \\
     --experiment_seed=1234 \\
-    --group='officehome_fts' \\
-    > out/logs/officehome_fts_1_1234.txt 2>&1 &
+    --group='{group}' \\
+    > out/logs/{group}_1_1234.txt 2>&1 &
 PID4=$!
 
 CUDA_VISIBLE_DEVICES={gpu} \\
@@ -54,8 +54,8 @@ python3 -m experiments.run \\
     --device='cuda:0' \\
     --dataset_seed=1 \\
     --experiment_seed=12345 \\
-    --group='officehome_fts' \\
-    > out/logs/officehome_fts_1_12345.txt 2>&1 &
+    --group='{group}' \\
+    > out/logs/{group}_1_12345.txt 2>&1 &
 PID5=$!
 
 CUDA_VISIBLE_DEVICES={gpu} \\
@@ -63,8 +63,8 @@ python3 -m experiments.run \\
     --device='cuda:0' \\
     --dataset_seed=100 \\
     --experiment_seed=100 \\
-    --group='officehome_fts' \\
-    > out/logs/officehome_fts_100_100.txt 2>&1 &
+    --group='{group}' \\
+    > out/logs/{group}_100_100.txt 2>&1 &
 PID6=$!
 
 CUDA_VISIBLE_DEVICES={gpu} \\
@@ -72,8 +72,8 @@ python3 -m experiments.run \\
     --device='cuda:0' \\
     --dataset_seed=100 \\
     --experiment_seed=1234 \\
-    --group='officehome_fts' \\
-    > out/logs/officehome_fts_100_1234.txt 2>&1 &
+    --group='{group}' \\
+    > out/logs/{group}_100_1234.txt 2>&1 &
 PID7=$!
 
 CUDA_VISIBLE_DEVICES={gpu} \\
@@ -81,8 +81,8 @@ python3 -m experiments.run \\
     --device='cuda:0' \\
     --dataset_seed=100 \\
     --experiment_seed=12345 \\
-    --group='officehome_fts' \\
-    > out/logs/officehome_fts_100_12345.txt 2>&1 &
+    --group='{group}' \\
+    > out/logs/{group}_100_12345.txt 2>&1 &
 PID8=$!
 
 wait $PID0 $PID1 $PID2 $PID3 $PID4 $PID5 $PID6 $PID7 $PID8
