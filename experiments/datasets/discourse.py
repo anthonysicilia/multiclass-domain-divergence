@@ -116,7 +116,7 @@ def _bert_vectors(parent, domain, train, seed, bert):
         except:
             print(classes)
     elif parent == 'gum':
-        classes = [x['relation'] for x in data]
+        classes = [x['discourse_sense'] for x in data]
 
     classes = [DISCOURSE_SENSE[parent][x] for x in classes]
     return Dataset(embeddings, classes)
@@ -142,6 +142,9 @@ def reddit(train=True, seed=0, bert='sentence'):
 def voyage(train=True, seed=0, bert='sentence'):
     return _bert_vectors('gum', 'voyage', train, seed, bert)
 
+def news(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'news', train, seed, bert)
+
 def interview(train=True, seed=0, bert='sentence'):
     return _bert_vectors('gum', 'interview', train, seed, bert)
 
@@ -160,6 +163,7 @@ def bio(train=True, seed=0, bert='sentence'):
 GUM_DATASETS = lambda b: [
     (f'{b[0]}_reddit', lazy_kwarg_init(reddit, bert=b)),
     (f'{b[0]}_voyage', lazy_kwarg_init(voyage, bert=b)),
+    (f'{b[0]}_news', lazy_kwarg_init(news, bert=b)),
     (f'{b[0]}_interview', lazy_kwarg_init(interview, bert=b)),
     (f'{b[0]}_whow', lazy_kwarg_init(whow, bert=b)),
     (f'{b[0]}_fiction', lazy_kwarg_init(fiction, bert=b)),
