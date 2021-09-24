@@ -51,6 +51,15 @@ GROUPS = {
         'models' : [('cnn4l', DigitsHypothesisSpace)]
     },
 
+    'digits_m' : {
+        'name' : 'digits_m',
+        'datasets' : DIGITS_DATASETS,
+        'multisource' : True,
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('cnn4l', DigitsHypothesisSpace)]
+    },
+
     'r_digits' : {
         'name' : 'r_digits',
         'datasets' : ROTATION_PAIRS,
@@ -125,7 +134,7 @@ GROUPS = {
     },
 
     'officehome_fts_m' : {
-        'name' : 'officehome_fts',
+        'name' : 'officehome_fts_m',
         'datasets' : OFFICEHOME_FTS_DATASETS,
         'multisource' : True,
         'make_pairs' : True,
@@ -138,7 +147,7 @@ GROUPS = {
     },
 
     'pacs_fts_m' : {
-        'name' : 'pacs_fts',
+        'name' : 'pacs_fts_m',
         'datasets' : PACS_FTS_DATASETS,
         'multisource' : True,
         'make_pairs' : True,
@@ -224,7 +233,7 @@ GROUPS = {
     },
 
     'amazon_m' : {
-        'name' : 'amazon',
+        'name' : 'amazon_m',
         'datasets' : AMAZON_DATASETS,
         'multisource' : True,
         'make_pairs' : True,
