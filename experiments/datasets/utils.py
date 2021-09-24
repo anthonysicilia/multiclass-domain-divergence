@@ -9,7 +9,7 @@ from ..utils import set_random_seed
 class Multisource(torch.utils.data.Dataset):
 
     def __init__(self, dsets):
-        self.dsets = dsets
+        self.dsets = [d() for d in dsets]
         self.num_classes = max([dset.num_classes
             for dset in self.dsets])
     

@@ -7,6 +7,7 @@ import torch
 from pathlib import Path
 # from tqdm import tqdm
 
+from .datasets.amazon import DATASETS as AMAZON_DATASETS
 from .datasets.digits import DATASETS as DIGITS_DATASETS, \
     ROTATION_PAIRS, NOISY_PAIRS, FAKE_PAIRS
 from .datasets.discourse import PDTB_DATASETS, GUM_DATASETS
@@ -123,6 +124,32 @@ GROUPS = {
                 num_inputs=2048))]
     },
 
+    'officehome_fts_m' : {
+        'name' : 'officehome_fts',
+        'datasets' : OFFICEHOME_FTS_DATASETS,
+        'multisource' : True,
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [
+            ('lin', lazy_kwarg_init(LinearHypothesisSpace, 
+                num_inputs=2048)),
+            ('fc4l', lazy_kwarg_init(NonLinearHypothesisSpace, 
+                num_inputs=2048))]
+    },
+
+    'pacs_fts_m' : {
+        'name' : 'pacs_fts',
+        'datasets' : PACS_FTS_DATASETS,
+        'multisource' : True,
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [
+            ('lin', lazy_kwarg_init(LinearHypothesisSpace, 
+                num_inputs=2048)),
+            ('fc4l', lazy_kwarg_init(NonLinearHypothesisSpace, 
+                num_inputs=2048))]
+    },
+
     'pdtb_sentence' : {
         'name' : 'pdtb_sentence',
         'datasets' : PDTB_DATASETS('sentence'),
@@ -181,7 +208,33 @@ GROUPS = {
         'two_sample' : True,
         'models' : [('lin', LinearHypothesisSpace),
             ('fc4l', NonLinearHypothesisSpace)],
-    }
+    },
+
+    'amazon' : {
+        'name' : 'amazon',
+        'datasets' : AMAZON_DATASETS,
+        'multisource' : False,
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [
+            ('lin', lazy_kwarg_init(LinearHypothesisSpace, 
+                num_inputs=4096)),
+            ('fc4l', lazy_kwarg_init(NonLinearHypothesisSpace, 
+                num_inputs=4096))]
+    },
+
+    'amazon_m' : {
+        'name' : 'amazon',
+        'datasets' : AMAZON_DATASETS,
+        'multisource' : True,
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [
+            ('lin', lazy_kwarg_init(LinearHypothesisSpace, 
+                num_inputs=4096)),
+            ('fc4l', lazy_kwarg_init(NonLinearHypothesisSpace, 
+                num_inputs=4096))]
+    },
 
 }
 
@@ -226,7 +279,8 @@ def _make_multisource_exps(group, dataset_seed):
                 if j != i]
             descs = [t[0] for t in source]
             dsets = [t[1] for t in source]
-            source = ('+'.join(descs), Multisource(dsets))
+            mdset = lazy_kwarg_init(Multisource, dsets=dsets)
+            source = ('+'.join(descs), mdset)
             exps.append((source, target, hspace))
     return exps
 
