@@ -129,7 +129,11 @@ class ProbLinear(torch.nn.Module):
     
     def sample(self):
         self.current_weight = self.weight.sample()
-        self.current_bias = self.weight.sample()
+        self.current_bias = self.bias.sample()
+    
+    def mean(self):
+        self.current_weight = self.weight.mu
+        self.current_bias = self.bias.mu
     
     def init_current_weights(self):
         # default to None. Promotes proper use and prevents 
@@ -217,7 +221,11 @@ class ProbConv2d(torch.nn.Module):
     
     def sample(self):
         self.current_weight = self.weight.sample()
-        self.current_bias = self.weight.sample()
+        self.current_bias = self.bias.sample()
+    
+    def mean(self):
+        self.current_weight = self.weight.mu
+        self.current_bias = self.bias.mu
     
     def init_current_weights(self):
         # default to None. Promotes proper use and prevents 
@@ -299,7 +307,11 @@ class ProbConvTranspose2d(torch.nn.Module):
     
     def sample(self):
         self.current_weight = self.weight.sample()
-        self.current_bias = self.weight.sample()
+        self.current_bias = self.bias.sample()
+    
+    def mean(self):
+        self.current_weight = self.weight.mu
+        self.current_bias = self.bias.mu
     
     def init_current_weights(self):
         # default to None. Promotes proper use and prevents 
@@ -331,7 +343,7 @@ class Stochastic(PyTorchHypothesisSpace):
     }
 
     def __init__(self, hypothesis_space, prior=None, m=1000, delta=0.05,
-        sigma_prior=0.01):
+        sigma_prior=0.01, device='cpu'):
         super().__init__(
             hypothesis_space.num_classes,
             hypothesis_space.epochs,
@@ -343,6 +355,7 @@ class Stochastic(PyTorchHypothesisSpace):
         self.m = m
         self.delta = delta
         self.prior = prior
+        self.device = device
         self.rho_prior = log(expm1(sigma_prior))
     
     def _make_stochastic(self, module, rho_prior, dist='gaussian', 
@@ -379,7 +392,7 @@ class Stochastic(PyTorchHypothesisSpace):
         loss = super().loss_fn(yhat, y, w=w)
         if h is not None:
             # infer if we should regularize based on h
-            kl = compute_kl(h)
+            kl = compute_kl(h, self.device)
             eps = dziugaite_variational_bound(loss, kl, 
                 self.m, self.delta)
             return loss + eps
@@ -407,16 +420,22 @@ def isprob(module):
         check = check or isinstance(module, layer_type)
     return check
 
-def compute_kl(model):
-    kl_div = torch.zeros(1, requires_grad=True).to(model.device)
+def compute_kl(model, device):
+    kl_div = torch.zeros(1, requires_grad=True).to(device)
     for m in model.modules():
         # find top level prob modules and sum.
         # multivariate normal with dialog cov
         # is a product distr of i.i.d uni normals
         # so we can just sum the kl divergences
-        if isprob(m): kl_div += m.kl_div
+        if isprob(m): kl_div = kl_div + m.kl_div
     return kl_div
 
 def sample(model):
     for m in model.modules():
         if isprob(m): m.sample()
+    return model
+
+def mean(model):
+    for m in model.modules():
+        if isprob(m): m.mean()
+    return model

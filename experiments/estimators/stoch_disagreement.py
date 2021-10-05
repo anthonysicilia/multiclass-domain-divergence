@@ -11,11 +11,13 @@ class Estimator(BaseEstimator):
 
     def __init__(self, hypothesis, hypothesis_space, dataset,  
         device='cpu', verbose=False, sample=True):
+        super().__init__()
         if not sample:
             raise ValueError('Only for stochastic models.')
         self.h1 = hypothesis.to(device)
-        self.h2 = hypothesis_space().load_state_dict(
-            hypothesis.state_dict()).to(device)
+        self.h2 = hypothesis_space()
+        self.h2.load_state_dict(hypothesis.state_dict())
+        self.h2 = self.h2.to(device)
         with torch.no_grad():
             if sample: sample_model(self.h1)
         with torch.no_grad():

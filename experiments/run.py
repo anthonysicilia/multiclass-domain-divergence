@@ -34,11 +34,11 @@ from .models.discourse import LinearHypothesisSpace, \
     NonLinearHypothesisSpace
 from .models.images import ResNet18HypothesisSpace, \
     ResNet50HypothesisSpace
-from .models.stochastic import Stochastic
+from .models.stochastic import Stochastic, mean
 from .utils import PlaceHolderEstimator, lazy_kwarg_init, set_random_seed
 
 MIN_TRAIN_SAMPLES = 1000
-MC_SAMPLES = 10_000
+MC_SAMPLES = 100
 SIGMA_PRIOR = 0.01
 
 GROUPS = {
@@ -339,22 +339,43 @@ def disjoint_split(dataset, seed=0):
     
     return Dataset(dataset, prefix), Dataset(dataset, bound)
 
+def run_baseline_experiment(source, target, hspace, seed,
+    verbose=False, device='cpu'):
+
+    hypothesis_space = hspace(num_classes=source.num_classes)
+    random_h = hypothesis_space()
+
+    estimators = {
+
+        'baseline_h_divergence' : HypothesisClassDivergence(
+            hypothesis_space, source, target, verbose=verbose,
+            binary=False, device=device, baseline=True),
+
+        'random_h_divergence' : HypothesisDivergence(random_h, 
+            hypothesis_space, source, target, verbose=verbose,
+            device=device),
+        
+        'random_train_error' : Error(random_h, hypothesis_space,
+            source, verbose=verbose, device=device),
+
+        'random_transfer_error' : Error(random_h, hypothesis_space, 
+            target, verbose=verbose, device=device),
+        
+    }
+
+    return {k : SeededEstimator(e, seed).compute() 
+        for k, e in estimators.items()}
+
 def run_stoch_experiment(source, target, hspace, seed,
     verbose=False, device='cpu'):
 
-    raise NotImplementedError('Not debugged yet...')
-
-    prefix_source, bound_source = disjoint_split(source, seed)
-    prefix_source_samples = len(prefix_source)
-    bound_source_samples = len(bound_source)
-    target_samples = len(target)
     hypothesis_space = hspace(num_classes=source.num_classes)
     prior_estimator = HypothesisEstimator(hypothesis_space, 
-        prefix_source, verbose=verbose, device=device)
+        source, verbose=verbose, device=device)
     prior = SeededEstimator(prior_estimator, seed).compute()
     stoch_hypothesis_space = Stochastic(hypothesis_space, 
-        prior=prior, m=bound_source_samples, delta=0.05,
-        sigma_prior=SIGMA_PRIOR)
+        prior=prior, m=len(source), delta=0.05,
+        sigma_prior=SIGMA_PRIOR, device=device)
     posterior_estimator = HypothesisEstimator(
         stoch_hypothesis_space, source, kl_reg=True, 
         sample=True, cache=False, verbose=verbose, 
@@ -365,24 +386,24 @@ def run_stoch_experiment(source, target, hspace, seed,
     estimators = {
         'train_error' : lazy_kwarg_init(Error,
             hypothesis=posterior, 
-            hypothesis_space=hypothesis_space, 
-            dataset=bound_source, verbose=verbose, device=device),
+            hypothesis_space=hypothesis_space, sample=True,
+            dataset=source, verbose=verbose, device=device),
 
         'transfer_error' : lazy_kwarg_init(Error, 
             hypothesis=posterior, 
-            hypothesis_space=hypothesis_space, 
+            hypothesis_space=hypothesis_space, sample=True,
             dataset=target, verbose=verbose, device=device),
         
         'source_dis' : lazy_kwarg_init(StochDisagreementEstimator,
             hypothesis=posterior, 
             hypothesis_space=stoch_hypothesis_space, 
-            dataset=bound_source, 
-            device=device, verbose=verbose, sample=True) ,
+            dataset=source, 
+            device=device, verbose=verbose, sample=True),
         
         'source_jerror' : lazy_kwarg_init(StochJointErrorEstimator,
             hypothesis=posterior, 
             hypothesis_space=stoch_hypothesis_space, 
-            dataset=bound_source, 
+            dataset=source, 
             device=device, verbose=verbose, sample=True),
         
         'target_dis' : lazy_kwarg_init(StochDisagreementEstimator,
@@ -397,29 +418,36 @@ def run_stoch_experiment(source, target, hspace, seed,
             dataset=target, 
             device=device, verbose=verbose, sample=True),
         
-        'our_h_divergence_stoch' : lazy_kwarg_init(
-            HypothesisDivergence,
-            hypothesis=posterior, 
-            hypothesis_space=stoch_hypothesis_space, 
-            a=bound_source, b=target, 
-            verbose=verbose, device=device),
     }
 
-    estimators = {MonteCarloEstimator(MC_SAMPLES, e) 
-        for e in estimators}
-    
-    estimators['h_class_divergence_stoch'] = \
-        HypothesisClassDivergence(hypothesis_space, 
-        bound_source, target, verbose=verbose,
-        binary=False, device=device)
-        
-    estimators['ben_david_lambda_stoch'] = \
-        BenDavidLambdaEstimator(hypothesis_space, 
-        bound_source, target, 
-        device=device, verbose=verbose),
-
-    return {k : SeededEstimator(e, seed).compute() 
+    estimators = {k : MonteCarloEstimator(MC_SAMPLES, e) 
         for k, e in estimators.items()}
+
+    computed = {k : SeededEstimator(e, seed).compute() 
+        for k, e in estimators.items()}
+    
+    with torch.no_grad():
+        posterior = mean(posterior)
+    
+    estimators = {
+        'train_error_ref' : Error(posterior,
+            hypothesis_space, source, sample=False,
+            verbose=verbose, device=device),
+
+        'transfer_error_ref' : Error(posterior,
+            hypothesis_space, target, sample=False,
+            verbose=verbose, device=device),
+
+        'our_h_divergence_ref' : HypothesisDivergence(
+            posterior, hypothesis_space, 
+            source, target, verbose=verbose, 
+            device=device)
+    }
+    
+    for k, est in estimators.items():
+        computed[k] = SeededEstimator(est, seed).compute()
+    
+    return computed
 
 def run_experiment(source, target, hspace, seed,
     two_sample, verbose=False, device='cpu'):
@@ -481,6 +509,12 @@ if __name__ == '__main__':
         default=100,
         type=int,
         help='The seed to use for the experiment.')
+    parser.add_argument('--stochastic',
+        action='store_true',
+        help='Run stochastic experiments.')
+    parser.add_argument('--baseline',
+        action='store_true',
+        help='Run baseline experiments.')
     parser.add_argument('--device',
         type=str,
         default='cpu',
@@ -502,12 +536,22 @@ if __name__ == '__main__':
         if args.test: # don't train to long
             h = lazy_kwarg_init(h, epochs=1, 
                 features_epochs=1)
+            MC_SAMPLES = 1
         s = s(); t = t()
         if len(s) < MIN_TRAIN_SAMPLES:
             continue
-        res = run_experiment(s, t, h, args.experiment_seed, 
-            two_sample, verbose=args.verbose, 
-            device=args.device)
+        if args.stochastic:
+            res = run_stoch_experiment(s, t, h, 
+                args.experiment_seed, verbose=args.verbose, 
+                device=args.device)
+        elif args.baseline:
+            res = run_baseline_experiment(s, t, h, 
+                args.experiment_seed, verbose=args.verbose, 
+                device=args.device)
+        else:
+            res = run_experiment(s, t, h, args.experiment_seed, 
+                two_sample, verbose=args.verbose, 
+                device=args.device)
         res['source'] = sname
         res['target'] = tname
         res['dataset_seed'] = args.dataset_seed
@@ -519,8 +563,13 @@ if __name__ == '__main__':
         g = group['name']
         ds = args.dataset_seed
         es = args.experiment_seed
-        Path('out/results').mkdir(parents=True, 
-            exist_ok=True)
-        write_loc = f'out/results/{g}-{ds}-{es}.csv'
+        if args.stochastic:
+            dir_loc = 'out/stoch_results'
+        elif args.baseline:
+            dir_loc = 'out/baseline_results'
+        else:
+            dir_loc = 'out/results'
+        Path(dir_loc).mkdir(parents=True, exist_ok=True)
+        write_loc = f'{dir_loc}/{g}-{ds}-{es}.csv'
         pd.DataFrame(data).to_csv(write_loc)
         print('Done', enumber); enumber += 1

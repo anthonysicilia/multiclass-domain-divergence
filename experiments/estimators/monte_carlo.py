@@ -4,6 +4,7 @@ from .expectation import Estimator as Mean
 class Estimator(BaseEstimator):
 
     def __init__(self, m, estimator):
+        super().__init__()
         self.m = m
         self.estimator = estimator
     

@@ -54,11 +54,24 @@ def _multiclass_sym_diff_classify(yhat1, yhat2):
     max_diag_A = A[I].reshape(batch_size, -1).max(dim=1).values
     return max_off_diag_A - max_diag_A
 
-def sym_diff_classify(yhat1, yhat2, binary=True):
-    if binary:
-        return _binary_sym_diff_classify(yhat1, yhat2)
+def _baseline_sym_diff_classify(yhat1):
+    if len(yhat1.size()) == 2:
+        return yhat1[:, 0]
+    elif len(yhat1.size()) == 1:
+        return yhat1
     else:
-        return _multiclass_sym_diff_classify(yhat1, yhat2)
+        raise NotImplementedError(
+            f'Size of output {yhat1.size()}'
+            ' not implemented in _binary_sym_diff_classify(...)')
+
+def sym_diff_classify(yhat1, yhat2, binary=True, baseline=False):
+    if baseline:
+        return _baseline_sym_diff_classify(yhat1)
+    else:
+        if binary:
+            return _binary_sym_diff_classify(yhat1, yhat2)
+        else:
+            return _multiclass_sym_diff_classify(yhat1, yhat2)
 
 class SymmetricDifferenceHypothesis(torch.nn.Module):
 
@@ -105,11 +118,12 @@ class SymmetricDifferenceHypothesis(torch.nn.Module):
             yhat2 = self.h2c(x[:, 1])
             return sym_diff_classify(yhat1, yhat2, binary=self.binary)
 
-    def __init__(self, hypothesis_space, finetune, binary):
+    def __init__(self, hypothesis_space, finetune, binary, baseline):
         super().__init__()
         self.h1 = hypothesis_space()
         self.h2 = hypothesis_space()
         self.binary = binary
+        self.baseline = baseline
         if finetune:
             self.f = self.Fnet(self.h1.f, self.h2.f)
             self.d = self.Dnet(self.h1.d, self.h2.d)
@@ -118,11 +132,12 @@ class SymmetricDifferenceHypothesis(torch.nn.Module):
     def forward(self, x):
         yhat1 = self.h1(x)
         yhat2 = self.h2(x)
-        return sym_diff_classify(yhat1, yhat2, binary=self.binary)
+        return sym_diff_classify(yhat1, yhat2, binary=self.binary,
+            baseline=self.baseline)
 
 class SymmetricDifferenceHypothesisSpace(PyTorchHypothesisSpace):
 
-    def __init__(self, hypothesis_space, binary=True):
+    def __init__(self, hypothesis_space, binary=True, baseline=False):
         super().__init__(
             1,
             hypothesis_space.epochs, 
@@ -132,21 +147,22 @@ class SymmetricDifferenceHypothesisSpace(PyTorchHypothesisSpace):
             hypothesis_space.finetune)
         self.underlying = hypothesis_space
         self.binary = binary
+        self.baseline = baseline
         if self.finetune:
             self.foptimizer = hypothesis_space.foptimizer
             self.fepochs = hypothesis_space.fepochs
     
     def __call__(self):
         return SymmetricDifferenceHypothesis(self.underlying, 
-            self.finetune, self.binary)
+            self.finetune, self.binary, self.baseline)
 
 class Estimator(BaseEstimator):
 
     def __init__(self, hypothesis_space, a, b, device='cpu', 
-        verbose=False, binary=True):
+        verbose=False, binary=True, baseline=False):
         super().__init__()
         self.hspace = SymmetricDifferenceHypothesisSpace( 
-            hypothesis_space, binary=binary)
+            hypothesis_space, binary=binary, baseline=baseline)
         self.a = a
         self.b = b
         self.device = device
