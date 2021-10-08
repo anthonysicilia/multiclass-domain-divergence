@@ -29,13 +29,14 @@ class JointSet(torch.utils.data.Dataset):
 class Estimator(BaseEstimator):
 
     def __init__(self, hypothesis_space, a, b,
-        device='cpu', verbose=False):
+        device='cpu', verbose=False, return_h=False):
         super().__init__()
         self.a = a
         self.b = b
         self.hspace = hypothesis_space
         self.device = device
         self.verbose = verbose
+        self.return_h = return_h
     
     def _compute(self):
         dataset = JointSet(self.a, self.b)
@@ -55,4 +56,7 @@ class Estimator(BaseEstimator):
                 errors1 = errors[z==1].sum().item()
                 error0.update(errors0, weight=(z==0).sum().item())
                 error1.update(errors1, weight=(z==1).sum().item())
-        return error0.compute() + error1.compute()
+        if self.return_h:
+            return error0.compute() + error1.compute(), hypothesis
+        else:
+            return error0.compute() + error1.compute()

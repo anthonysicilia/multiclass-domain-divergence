@@ -9,8 +9,10 @@ from scipy.stats import spearmanr, pearsonr, linregress
 PATH1 = 'out/results'
 PATH2 = 'out/stoch_results'
 PATH3 = 'out/baseline_results'
+PATH4 = 'out/results-nlp-10-5-2021'
 
 PATHS = [f'{PATH1}/{x}' for x in os.listdir(PATH1)]
+PATHS += [f'{PATH4}/{x}' for x in os.listdir(PATH4)]
 STOCH_PATHS = [f'{PATH2}/{x}' for x in os.listdir(PATH2)]
 BAS_PATHS = [f'{PATH3}/{x}' for x in os.listdir(PATH3)]
 
@@ -58,9 +60,13 @@ def summarize(df, write_loc, norm=False, norm_col=None, app='',
 
 if __name__ == '__main__':
     results = pd.concat([pd.read_csv(p) for p in PATHS])
+    # keep = (results['group_num'] != 'amazon') & (results['group_num'] != 'amazon_m')
+    # results = results[keep].copy()
     results.to_csv('results-all.csv')
     summarize(results.copy(), 'results/agg')
     s_results = pd.concat([pd.read_csv(p) for p in STOCH_PATHS])
+    # keep = (s_results['group_num'] != 'amazon') & (s_results['group_num'] != 'amazon_m')
+    # s_results = s_results[keep].copy()
     s_results.to_csv('results-stoch.csv')
     s_results['Germain et al.'] = s_results['source_jerror'] \
         - s_results['target_jerror']
@@ -76,12 +82,20 @@ if __name__ == '__main__':
     plt.legend()
     plt.savefig('results/stoch_assumptions-1')
     plt.clf()
+    plt.hist(results['ben_david_lambda'], 
+        label='sample-dependent adaptability', 
+        bins=25, alpha=0.8)
+    plt.legend()
+    plt.savefig('results/just_lambda-1')
+    plt.clf()
     s_results['germain_dis_div'] = (s_results['source_dis'] 
         - s_results['target_dis']).abs()
     summarize(s_results.copy(), 'results/agg',
         stat_columns=('our_h_divergence_ref', 'germain_dis_div'),
         app='-s')
     b_results = pd.concat([pd.read_csv(p) for p in BAS_PATHS])
+    # keep = (b_results['group_num'] != 'amazon') & (b_results['group_num'] != 'amazon_m')
+    # b_results = b_results[keep].copy()
     b_results.to_csv('results-basl.csv')
     b_results['train_error'] = b_results['random_train_error']
     b_results['transfer_error'] = b_results['random_transfer_error']
@@ -133,16 +147,23 @@ if __name__ == '__main__':
     results['abs_error_gap'] = results['error_gap'].abs()
     a = results['abs_error_gap'] - results['ben_david_lambda'] \
         - results['our_h_divergence']
-    a = [ai if ai > 0 else 0 for ai in a]
     b = results['abs_error_gap'] - results['ben_david_lambda'] \
         - results['h_class_divergence']
-    a = [ai for ai in a if ai > 0]
-    b = [bi for bi in b if bi > 0]
+    a = [ai for ai in a]# if ai > 0]
+    b = [bi for bi in b]# if bi > 0]
     plt.hist([a,b], 
+        log=True,
         label=['our_h_divergence', 'h_class_divergence'], 
         bins=25, alpha=0.8)
     plt.legend()
     plt.savefig('results/approx_error_comp')
+    plt.clf()
+
+    same = results['source'].apply(lambda s: s.split('-')[0]) \
+        == results['target'].apply(lambda s: s.split('-')[0])
+    plt.hist(2 * results[same]['transfer_error'],
+        bins=25, alpha=0.8)
+    plt.savefig('results/example_new_lamb_exp')
     plt.clf()
     
 

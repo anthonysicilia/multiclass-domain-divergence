@@ -315,10 +315,10 @@ def make_experiments(group, dataset_seed):
     else:
         return _make_prepackaged_exps(group, dataset_seed)
 
-def disjoint_split(dataset, seed=0):
+def disjoint_split(dataset, seed=0, prefix_ratio=0.5):
 
     random.seed(seed)
-    indices = [(i, random.random() <= 0.5) 
+    indices = [(i, random.random() <= prefix_ratio) 
         for i in range(len(dataset))]
     prefix = [i for i, b in indices if b]
     bound = [i for i, b in indices if not b]
@@ -334,10 +334,43 @@ def disjoint_split(dataset, seed=0):
         
         def __getitem__(self, index):
             data = self.a.__getitem__(self.index_list[index])
-            data[2] = index
+            # can't assing to tuple... 
+            # NOTE: this might break cacheing
+            # data[2] = index
             return data
     
     return Dataset(dataset, prefix), Dataset(dataset, bound)
+
+def run_lambda_baseline_experiment(source, target, hspace, seed,
+    verbose=False, device='cpu'):
+
+    target1, target2 = disjoint_split(target, seed=seed,
+        prefix_ratio=0.8)
+    
+    source1, source2 = disjoint_split(source, seed=seed,
+        prefix_ratio=0.8)
+
+    hypothesis_space = hspace(num_classes=source.num_classes)
+
+    hypothesis = BenDavidLambdaEstimator(
+        hypothesis_space, source1, target1, 
+        return_h=True,
+        device=device, verbose=verbose).compute()[1]
+
+    estimators = {
+        'holdout_source_error' : Error(hypothesis, hypothesis_space,
+            source2, verbose=verbose, device=device),
+        'holdout_target_error' : Error(hypothesis, hypothesis_space,
+            target2, verbose=verbose, device=device)
+    }
+
+    estimates = {k : SeededEstimator(e, seed).compute() 
+        for k, e in estimators.items()}
+
+    estimates['source_samples'] = len(source2)
+    estimates['target_samples'] = len(target2)
+
+    return estimates
 
 def run_baseline_experiment(source, target, hspace, seed,
     verbose=False, device='cpu'):
@@ -515,6 +548,9 @@ if __name__ == '__main__':
     parser.add_argument('--baseline',
         action='store_true',
         help='Run baseline experiments.')
+    parser.add_argument('--lambda_baseline',
+        action='store_true',
+        help='Run lambda baseline experiments.')
     parser.add_argument('--device',
         type=str,
         default='cpu',
@@ -548,6 +584,10 @@ if __name__ == '__main__':
             res = run_baseline_experiment(s, t, h, 
                 args.experiment_seed, verbose=args.verbose, 
                 device=args.device)
+        elif args.lambda_baseline:
+            res = run_lambda_baseline_experiment(s, t, h, 
+                args.experiment_seed, verbose=args.verbose, 
+                device=args.device)
         else:
             res = run_experiment(s, t, h, args.experiment_seed, 
                 two_sample, verbose=args.verbose, 
@@ -567,6 +607,8 @@ if __name__ == '__main__':
             dir_loc = 'out/stoch_results'
         elif args.baseline:
             dir_loc = 'out/baseline_results'
+        elif args.lambda_baseline:
+            dir_loc = 'out/lambda_baseline_results'
         else:
             dir_loc = 'out/results'
         Path(dir_loc).mkdir(parents=True, exist_ok=True)

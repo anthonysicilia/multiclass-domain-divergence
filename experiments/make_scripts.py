@@ -2,7 +2,7 @@ from pathlib import Path
 
 from .run import GROUPS
 
-def script(group, gpu, stochastic=False, baseline=False):
+def script(group, gpu, stochastic=False, baseline=False, lambda_baseline=False):
 
     if stochastic:
         add_arg = '--stochastic '
@@ -10,6 +10,9 @@ def script(group, gpu, stochastic=False, baseline=False):
     elif baseline:
         add_arg = '--baseline '
         add_log = '_b'
+    elif lambda_baseline:
+        add_arg = '--lambda_baseline'
+        add_log = '_l'
     else:
         add_arg = ''
         add_log = ''
@@ -114,6 +117,10 @@ if __name__ == '__main__':
         for gpu in [0, 1]:
             with open(f'{loc}/{k}-s-gpu={gpu}.sh', 'w') as out:
                 out.write(script(k, gpu, stochastic=True))
+    for k in GROUPS.keys():
+        for gpu in [0, 1]:
+            with open(f'{loc}/{k}-l-gpu={gpu}.sh', 'w') as out:
+                out.write(script(k, gpu, lambda_baseline=True))
     
     Path(f'{par}/run').mkdir(parents=True, exist_ok=True)
     with open(f'{par}/run/example.sh', 'w') as out:
