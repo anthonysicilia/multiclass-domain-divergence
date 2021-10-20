@@ -380,13 +380,13 @@ def run_baseline_experiment(source, target, hspace, seed,
 
     estimators = {
 
-        'baseline_h_divergence' : HypothesisClassDivergence(
-            hypothesis_space, source, target, verbose=verbose,
-            binary=False, device=device, baseline=True),
+        # 'baseline_h_divergence' : HypothesisClassDivergence(
+        #     hypothesis_space, source, target, verbose=verbose,
+        #     binary=False, device=device, baseline=True),
 
-        'random_h_divergence' : HypothesisDivergence(random_h, 
-            hypothesis_space, source, target, verbose=verbose,
-            device=device),
+        # 'random_h_divergence' : HypothesisDivergence(random_h, 
+        #     hypothesis_space, source, target, verbose=verbose,
+        #     device=device),
         
         'random_train_error' : Error(random_h, hypothesis_space,
             source, verbose=verbose, device=device),
