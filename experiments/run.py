@@ -10,7 +10,7 @@ from pathlib import Path
 from .datasets.amazon import DATASETS as AMAZON_DATASETS
 from .datasets.digits import DATASETS as DIGITS_DATASETS, \
     ROTATION_PAIRS, NOISY_PAIRS, FAKE_PAIRS
-from .datasets.discourse import PDTB_DATASETS, GUM_DATASETS
+from .datasets.discourse import PDTB_DATASETS, GUM_DATASETS, RST_DATASETS, RST_GUM_PDTB_LABELS_DATASETS
 from .datasets.images import PACS_DATASETS, OFFICEHOME_DATASETS, \
     PACS_FTS_DATASETS, OFFICEHOME_FTS_DATASETS
 from .datasets.utils import Multisource
@@ -219,6 +219,66 @@ GROUPS = {
             ('fc4l', NonLinearHypothesisSpace)],
     },
 
+    'rst_sentence' : {
+        'name' : 'rst_sentence',
+        'datasets' : RST_DATASETS('sentence'),
+        'multisource' : False,
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
+
+    'rst_average' : {
+        'name' : 'rst_average',
+        'datasets' : RST_DATASETS('average'),
+        'multisource' : False,
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
+
+    'rst_pooled' : {
+        'name' : 'rst_pooled',
+        'datasets' : RST_DATASETS('pooled'),
+        'multisource' : False,
+        'make_pairs' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
+
+    'rst_gum_pdtb_sentence' : {
+        'datasets_a' : RST_GUM_PDTB_LABELS_DATASETS('sentence'),
+        'datasets_b' : PDTB_DATASETS('sentence'),
+        'multisource' : True,
+        'two_groups' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
+
+    'rst_gum_pdtb_average' : {
+        'datasets_a' : RST_GUM_PDTB_LABELS_DATASETS('average'),
+        'datasets_b' : PDTB_DATASETS('average'),
+        'multisource' : True,
+        'two_groups' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
+
+    'rst_gum_pdtb_pooled' : {
+        'datasets_a' : RST_GUM_PDTB_LABELS_DATASETS('pooled'),
+        'datasets_b' : PDTB_DATASETS('pooled'),
+        'multisource' : True,
+        'two_groups' : True,
+        'two_sample' : True,
+        'models' : [('lin', LinearHypothesisSpace),
+            ('fc4l', NonLinearHypothesisSpace)],
+    },
+
     'amazon' : {
         'name' : 'amazon',
         'datasets' : AMAZON_DATASETS,
@@ -293,6 +353,32 @@ def _make_multisource_exps(group, dataset_seed):
             exps.append((source, target, hspace))
     return exps
 
+def _make_multi_group_exps(group_a, group_b, dataset_seed):
+    datasets_a = [(f'{desc}', lazy_kwarg_init(dset,
+                                              train=True, seed=dataset_seed))
+        for desc, dset in group_a]
+    datasets_b = [(f'{desc}',
+        dset(train=True, seed=dataset_seed))
+        for desc, dset in group_b]
+    exps = []
+    for i in range(len(datasets_a)):
+        for hspace in group['models']:
+            target = datasets_a[i]
+            descs = [s[0] for s in datasets_b]
+            dsets = [s[1] for s in datasets_b]
+            mdset = lazy_kwarg_init(Multisource, dsets=dsets)
+            source = ('+'.join(descs), mdset)
+            exps.append((source, target, hspace))
+    for i in range(len(datasets_b)):
+        for hspace in group['models']:
+            target = datasets_b[i]
+            descs = [s[0] for s in datasets_a]
+            dsets = [s[1] for s in datasets_a]
+            mdset = lazy_kwarg_init(Multisource, dsets=dsets)
+            source = ('+'.join(descs), mdset)
+            exps.append((source, target, hspace))
+    return exps
+
 def _make_prepackaged_exps(group, dataset_seed):
     exps = []
     for (sname, s, tname, t) in group['datasets']:
@@ -307,14 +393,16 @@ def _make_prepackaged_exps(group, dataset_seed):
     return exps
     
 def make_experiments(group, dataset_seed):
-    if group['make_pairs']:
-        if group['multisource']:
-            return _make_multisource_exps(group, dataset_seed)
-        else:
-            return _make_single_source_exps(group, dataset_seed)
+    if group['two_groups']:
+        return _make_multi_group_exps(group['datasets_a'],
+                                      group['datasets_b'], dataset_seed)
     else:
-        return _make_prepackaged_exps(group, dataset_seed)
-
+        if group['multisource']:
+            return _make_multisource_exps(group['datasets'],
+                                          dataset_seed)
+        else:
+            return _make_single_source_exps(group['datasets'],
+                                            dataset_seed)
 def disjoint_split(dataset, seed=0, prefix_ratio=0.5):
 
     random.seed(seed)
