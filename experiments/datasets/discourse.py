@@ -131,7 +131,10 @@ def _bert_vectors(parent, domain, train, seed, bert, use_pdtb_labels=False):
     else:
         print("parent", parent, "not recognized")
 
-    classes = [DISCOURSE_SENSE[parent][x] for x in classes]
+    if use_pdtb_labels:
+        classes = [DISCOURSE_SENSE['pdtb'][x] for x in classes]
+    else:
+        classes = [DISCOURSE_SENSE[parent][x] for x in classes]
     print("number of classes is:", len(set(classes)))
     if domain == "RST":
         return Dataset(embeddings, classes, num_classes = 17)
@@ -234,14 +237,14 @@ def bio_pdtb_labels(train=True, seed=0, bert='sentence'):
 def rst_pdtb_labels(train=True, seed=0, bert='sentence'):
     return _bert_vectors('gum', 'RST', train, seed, bert)
 
-RST_GUM_PDTB_LABELS_DATASETS = [
-    ('reddit_pdtb_labels', reddit_pdtb_labels),
-    ('voyage_pdtb_labels', voyage_pdtb_labels),
-    ('news_pdtb_labels', news_pdtb_labels),
-    ('interview_pdtb_labels', interview_pdtb_labels),
-    ('whow_pdtb_labels', whow_pdtb_labels),
-    ('fiction_pdtb_labels', fiction_pdtb_labels),
-    ('academic_pdtb_labels', academic_pdtb_labels),
-    ('bio_pdtb_labels', bio_pdtb_labels),
-    ('rst_pdtb_labels', rst_pdtb_labels)
+RST_GUM_PDTB_LABELS_DATASETS = lambda b: [
+    (f'{b[0]}_reddit_pdtb_labels', lazy_kwarg_init(reddit_pdtb_labels, bert=b)),
+    (f'{b[0]}_voyage_pdtb_labels', lazy_kwarg_init(voyage_pdtb_labels, bert=b)),
+    (f'{b[0]}_news_pdtb_labels', lazy_kwarg_init(news_pdtb_labels, bert=b)),
+    (f'{b[0]}_interview_pdtb_labels', lazy_kwarg_init(interview_pdtb_labels, bert=b)),
+    (f'{b[0]}_whow_pdtb_labels', lazy_kwarg_init(whow_pdtb_labels, bert=b)),
+    (f'{b[0]}_fiction_pdtb_labels', lazy_kwarg_init(fiction_pdtb_labels, bert=b)),
+    (f'{b[0]}_academic_pdtb_labels', lazy_kwarg_init(academic_pdtb_labels, bert=b)),
+    (f'{b[0]}_bio_pdtb_labels', lazy_kwarg_init(bio_pdtb_labels, bert=b)),
+    (f'{b[0]}_rst_pdtb_labels', lazy_kwarg_init(rst_pdtb_labels, bert=b))
 ]

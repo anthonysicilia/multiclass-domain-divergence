@@ -46,6 +46,7 @@ GROUPS = {
         'name' : 'digits',
         'datasets' : DIGITS_DATASETS,
         'multisource' : False,
+        'two_groups' : False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('cnn4l', DigitsHypothesisSpace)]
@@ -55,6 +56,7 @@ GROUPS = {
         'name' : 'digits_m',
         'datasets' : DIGITS_DATASETS,
         'multisource' : True,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('cnn4l', DigitsHypothesisSpace)]
@@ -64,6 +66,7 @@ GROUPS = {
         'name' : 'r_digits',
         'datasets' : ROTATION_PAIRS,
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : False,
         'two_sample' : True,
         'models' : [('cnn4l', DigitsHypothesisSpace)]
@@ -73,6 +76,7 @@ GROUPS = {
         'name' : 'n_digits',
         'datasets' : NOISY_PAIRS,
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : False,
         'two_sample' : True,
         'models' : [('cnn4l', DigitsHypothesisSpace)]
@@ -82,6 +86,7 @@ GROUPS = {
         'name' : 'f_digits',
         'datasets' : FAKE_PAIRS,
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : False,
         'two_sample' : True,
         'models' : [('cnn4l', DigitsHypothesisSpace)]
@@ -93,6 +98,7 @@ GROUPS = {
         'name' : 'pacs',
         'datasets' : PACS_DATASETS,
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : False,
         'models' : [('rn18', ResNet18HypothesisSpace)]
@@ -102,6 +108,7 @@ GROUPS = {
         'name' : 'officehome',
         'datasets' : OFFICEHOME_DATASETS,
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : False,
         'models' : [('rn50', ResNet50HypothesisSpace)]
@@ -111,6 +118,7 @@ GROUPS = {
         'name' : 'officehome_fts',
         'datasets' : OFFICEHOME_FTS_DATASETS,
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [
@@ -124,6 +132,7 @@ GROUPS = {
         'name' : 'pacs_fts',
         'datasets' : PACS_FTS_DATASETS,
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [
@@ -137,6 +146,7 @@ GROUPS = {
         'name' : 'officehome_fts_m',
         'datasets' : OFFICEHOME_FTS_DATASETS,
         'multisource' : True,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [
@@ -150,6 +160,7 @@ GROUPS = {
         'name' : 'pacs_fts_m',
         'datasets' : PACS_FTS_DATASETS,
         'multisource' : True,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [
@@ -162,7 +173,8 @@ GROUPS = {
     'pdtb_sentence' : {
         'name' : 'pdtb_sentence',
         'datasets' : PDTB_DATASETS('sentence'),
-        'multisource' : False, 
+        'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('lin', LinearHypothesisSpace),
@@ -172,7 +184,8 @@ GROUPS = {
     'pdtb_average' : {
         'name' : 'pdtb_average',
         'datasets' : PDTB_DATASETS('average'),
-        'multisource' : False, 
+        'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('lin', LinearHypothesisSpace),
@@ -182,7 +195,8 @@ GROUPS = {
     'pdtb_pooled' : {
         'name' : 'pdtb_pooled',
         'datasets' : PDTB_DATASETS('pooled'),
-        'multisource' : False, 
+        'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('lin', LinearHypothesisSpace),
@@ -192,7 +206,8 @@ GROUPS = {
     'gum_sentence' : {
         'name' : 'gum_sentence',
         'datasets' : GUM_DATASETS('sentence'),
-        'multisource' : True, 
+        'multisource' : True,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('lin', LinearHypothesisSpace),
@@ -202,7 +217,8 @@ GROUPS = {
     'gum_average' : {
         'name' : 'gum_average',
         'datasets' : GUM_DATASETS('average'),
-        'multisource' : True, 
+        'multisource' : True,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('lin', LinearHypothesisSpace),
@@ -212,7 +228,8 @@ GROUPS = {
     'gum_pooled' : {
         'name' : 'gum_pooled',
         'datasets' : GUM_DATASETS('pooled'),
-        'multisource' : True, 
+        'multisource' : True,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('lin', LinearHypothesisSpace),
@@ -223,6 +240,7 @@ GROUPS = {
         'name' : 'rst_sentence',
         'datasets' : RST_DATASETS('sentence'),
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('lin', LinearHypothesisSpace),
@@ -233,6 +251,7 @@ GROUPS = {
         'name' : 'rst_average',
         'datasets' : RST_DATASETS('average'),
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('lin', LinearHypothesisSpace),
@@ -243,6 +262,7 @@ GROUPS = {
         'name' : 'rst_pooled',
         'datasets' : RST_DATASETS('pooled'),
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [('lin', LinearHypothesisSpace),
@@ -250,6 +270,7 @@ GROUPS = {
     },
 
     'rst_gum_pdtb_sentence' : {
+        'name' : 'rst_gum_pdtb_sentence',
         'datasets_a' : RST_GUM_PDTB_LABELS_DATASETS('sentence'),
         'datasets_b' : PDTB_DATASETS('sentence'),
         'multisource' : True,
@@ -260,6 +281,7 @@ GROUPS = {
     },
 
     'rst_gum_pdtb_average' : {
+        'name' : 'rst_gum_pdtb_average',
         'datasets_a' : RST_GUM_PDTB_LABELS_DATASETS('average'),
         'datasets_b' : PDTB_DATASETS('average'),
         'multisource' : True,
@@ -270,6 +292,7 @@ GROUPS = {
     },
 
     'rst_gum_pdtb_pooled' : {
+        'name' : 'rst_gum_pdtb_pooled',
         'datasets_a' : RST_GUM_PDTB_LABELS_DATASETS('pooled'),
         'datasets_b' : PDTB_DATASETS('pooled'),
         'multisource' : True,
@@ -283,6 +306,7 @@ GROUPS = {
         'name' : 'amazon',
         'datasets' : AMAZON_DATASETS,
         'multisource' : False,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [
@@ -296,6 +320,7 @@ GROUPS = {
         'name' : 'amazon_m',
         'datasets' : AMAZON_DATASETS,
         'multisource' : True,
+        'two_groups': False,
         'make_pairs' : True,
         'two_sample' : True,
         'models' : [
@@ -353,13 +378,13 @@ def _make_multisource_exps(group, dataset_seed):
             exps.append((source, target, hspace))
     return exps
 
-def _make_multi_group_exps(group_a, group_b, dataset_seed):
+def _make_multi_group_exps(group, dataset_seed):
     datasets_a = [(f'{desc}', lazy_kwarg_init(dset,
                                               train=True, seed=dataset_seed))
-        for desc, dset in group_a]
-    datasets_b = [(f'{desc}',
-        dset(train=True, seed=dataset_seed))
-        for desc, dset in group_b]
+        for desc, dset in group['datasets_a']]
+    datasets_b = [(f'{desc}', lazy_kwarg_init(dset,
+                                              train=True, seed=dataset_seed))
+        for desc, dset in group['datasets_b']]
     exps = []
     for i in range(len(datasets_a)):
         for hspace in group['models']:
@@ -394,14 +419,14 @@ def _make_prepackaged_exps(group, dataset_seed):
     
 def make_experiments(group, dataset_seed):
     if group['two_groups']:
-        return _make_multi_group_exps(group['datasets_a'],
-                                      group['datasets_b'], dataset_seed)
+        return _make_multi_group_exps(group,
+                                      dataset_seed)
     else:
         if group['multisource']:
-            return _make_multisource_exps(group['datasets'],
+            return _make_multisource_exps(group,
                                           dataset_seed)
         else:
-            return _make_single_source_exps(group['datasets'],
+            return _make_single_source_exps(group,
                                             dataset_seed)
 def disjoint_split(dataset, seed=0, prefix_ratio=0.5):
 
