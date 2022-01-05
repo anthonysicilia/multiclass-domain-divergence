@@ -20,7 +20,9 @@ NLP_S = 'out/stoch_results-nlp-10-8-2021'
 PATHS_S = [f'{CV_S}/{x}' for x in os.listdir(CV_S)]
 PATHS_S += [f'{NLP_S}/{x}' for x in os.listdir(NLP_S)]
 CV_R = 'out/baseline_results'
+NLP_R = 'out/results-nlp-baseline-10-21-2021-final'
 PATHS_R = [f'{CV_R}/{x}' for x in os.listdir(CV_R)]
+PATHS_R += [f'{NLP_R}/{x}' for x in os.listdir(NLP_R)]
 
 SEP = '$$$$'
 MCS = 100
