@@ -8,7 +8,7 @@ import seaborn as sns
 from pathlib import Path
 from scipy.stats import spearmanr, pearsonr, linregress
 
-# CV = 'out/results'
+CV = 'out/results'
 NLP = 'out/results-nlp-10-5-2021'
 PATHS = [f'{CV}/{x}' for x in os.listdir(CV)]
 PATHS += [f'{NLP}/{x}' for x in os.listdir(NLP)]
