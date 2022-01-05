@@ -37,8 +37,7 @@ NORMED_DISCOURSE_SENSES = {
     'Exception' : 'Expansion',
     'Instantiation' : 'Expansion',
     'Reinforcement' : 'Expansion',
-    'Restatement' : 'Expansion',
-    'Similarity' : 'Expansion'
+    'Restatement' : 'Expansion'
 }
 
 PDTB_DISCOURSE_SENSE = {
@@ -62,7 +61,10 @@ GUM_DISCOURSE_SENSE = {
     'Elaboration' : 10, 
     'Manner-Means' : 11, 
     'Enablement' : 12, 
-    'Evaluation' : 13
+    'Evaluation' : 13,
+        'Same-Unit' : 14,
+        'Comparison': 15,
+        'Textual-Organization': 16        
 }
 
 DISCOURSE_SENSE = {
@@ -72,10 +74,13 @@ DISCOURSE_SENSE = {
 
 class Dataset(torch.utils.data.Dataset):
 
-        def __init__(self, vecs, labels):
+        def __init__(self, vecs, labels, num_classes=None):
             self.vecs = vecs
             self.labels = labels
-            self.num_classes = max(set(labels)) + 1
+            if num_classes:
+                self.num_classes = num_classes
+            else:
+                self.num_classes = max(set(labels)) + 1
             # not really needed anymore, always 768 or tokens
             # try:
             #     self.input_sz = vecs[0].shape[0]
@@ -88,8 +93,14 @@ class Dataset(torch.utils.data.Dataset):
         def __getitem__(self, index):
             return self.vecs[index], self.labels[index], index
 
-def _bert_vectors(parent, domain, train, seed, bert):
-    loc = open(f'{parent}_relations_{bert}.pkl', 'rb')
+def _bert_vectors(parent, domain, train, seed, bert, use_pdtb_labels=False):
+    if use_pdtb_labels and parent == 'pdtb':
+        use_pdtb_labels = False
+    loc_path = f'{parent}_relations_{bert}.pkl' \
+        if not use_pdtb_labels \
+        else f'{parent}_relations_{bert}_pdtb_labels.pkl'
+    loc = open(loc_path, 'rb')
+
     data = pickle.load(loc)
     data = [x for x in data if x['domain'] == domain]
     scoped_random = Random(seed)
@@ -107,7 +118,7 @@ def _bert_vectors(parent, domain, train, seed, bert):
     else:
         embeddings = [x['embeddings'].flatten() for x in data]
 
-    if parent == 'pdtb':
+    if parent == 'pdtb' or use_pdtb_labels:
         classes = [x['discourse_sense'].split('.')[0] 
             for x in data]
         try:
@@ -117,9 +128,18 @@ def _bert_vectors(parent, domain, train, seed, bert):
             print(classes)
     elif parent == 'gum':
         classes = [x['discourse_sense'] for x in data]
+    else:
+        print("parent", parent, "not recognized")
 
-    classes = [DISCOURSE_SENSE[parent][x] for x in classes]
-    return Dataset(embeddings, classes)
+    if use_pdtb_labels:
+        classes = [DISCOURSE_SENSE['pdtb'][x] for x in classes]
+    else:
+        classes = [DISCOURSE_SENSE[parent][x] for x in classes]
+    print("number of classes is:", len(set(classes)))
+    if domain == "RST":
+        return Dataset(embeddings, classes, num_classes = 17)
+    else:
+        return Dataset(embeddings, classes)
 
 def biodrb(train=True, seed=0, bert='sentence'):
     return _bert_vectors('pdtb', 'BioDRB', train, seed, bert)
@@ -127,11 +147,15 @@ def biodrb(train=True, seed=0, bert='sentence'):
 def pdtb(train=True, seed=0, bert='sentence'):
     return _bert_vectors('pdtb', 'PDTB', train, seed, bert)
 
+def pdtb3(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('pdtb', 'PDTB3', train, seed, bert)
+
 def ted(train=True, seed=0, bert='sentence'):
     return _bert_vectors('pdtb', 'TED-MDB', train, seed, bert)
 
 PDTB_DATASETS = lambda b: [
     (f'{b[0]}_pdtb', lazy_kwarg_init(pdtb, bert=b)),
+    (f'{b[0]}_pdtb3', lazy_kwarg_init(pdtb3, bert=b)),
     (f'{b[0]}_biodrb', lazy_kwarg_init(biodrb, bert=b)),
     (f'{b[0]}_ted', lazy_kwarg_init(ted, bert=b))
 ]
@@ -169,4 +193,58 @@ GUM_DATASETS = lambda b: [
     (f'{b[0]}_fiction', lazy_kwarg_init(fiction, bert=b)),
     (f'{b[0]}_academic', lazy_kwarg_init(academic, bert=b)),
     (f'{b[0]}_bio', lazy_kwarg_init(bio, bert=b))
+]
+
+def rst(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'RST', train, seed, bert)
+
+RST_DATASETS = lambda b: [
+    (f'{b[0]}_rst', lazy_kwarg_init(rst, bert=b)),
+]
+
+def reddit_pdtb_labels(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'reddit', train, seed, bert,
+        use_pdtb_labels=True)
+
+def voyage_pdtb_labels(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'voyage', train, seed, bert,
+        use_pdtb_labels=True)
+
+def news_pdtb_labels(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'news', train, seed, bert,
+        use_pdtb_labels=True)
+
+def interview_pdtb_labels(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'interview', train, seed, bert,
+        use_pdtb_labels=True)
+
+def whow_pdtb_labels(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'whow', train, seed, bert,
+        use_pdtb_labels=True)
+
+def fiction_pdtb_labels(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'fiction', train, seed, bert,
+        use_pdtb_labels=True)
+
+def academic_pdtb_labels(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'academic', train, seed, bert,
+        use_pdtb_labels=True)
+
+def bio_pdtb_labels(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'bio', train, seed, bert,
+        use_pdtb_labels=True)
+
+def rst_pdtb_labels(train=True, seed=0, bert='sentence'):
+    return _bert_vectors('gum', 'RST', train, seed, bert)
+
+RST_GUM_PDTB_LABELS_DATASETS = lambda b: [
+    (f'{b[0]}_reddit_pdtb_labels', lazy_kwarg_init(reddit_pdtb_labels, bert=b)),
+    (f'{b[0]}_voyage_pdtb_labels', lazy_kwarg_init(voyage_pdtb_labels, bert=b)),
+    (f'{b[0]}_news_pdtb_labels', lazy_kwarg_init(news_pdtb_labels, bert=b)),
+    (f'{b[0]}_interview_pdtb_labels', lazy_kwarg_init(interview_pdtb_labels, bert=b)),
+    (f'{b[0]}_whow_pdtb_labels', lazy_kwarg_init(whow_pdtb_labels, bert=b)),
+    (f'{b[0]}_fiction_pdtb_labels', lazy_kwarg_init(fiction_pdtb_labels, bert=b)),
+    (f'{b[0]}_academic_pdtb_labels', lazy_kwarg_init(academic_pdtb_labels, bert=b)),
+    (f'{b[0]}_bio_pdtb_labels', lazy_kwarg_init(bio_pdtb_labels, bert=b)),
+    (f'{b[0]}_rst_pdtb_labels', lazy_kwarg_init(rst_pdtb_labels, bert=b))
 ]
