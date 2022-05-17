@@ -10,6 +10,8 @@ from scipy.stats import spearmanr, pearsonr, linregress
 
 CV = 'out/results'
 NLP = 'out/results-nlp-10-5-2021'
+# Used for ACL
+# PATHS = [f'{NLP}/{x}' for x in os.listdir(NLP)]
 PATHS = [f'{CV}/{x}' for x in os.listdir(CV)]
 PATHS += [f'{NLP}/{x}' for x in os.listdir(NLP)]
 CV_LB = 'out/lambda_baseline_results'
@@ -20,10 +22,6 @@ CV_S = 'out/stoch_results'
 NLP_S = 'out/stoch_results-nlp-10-8-2021'
 PATHS_S = [f'{CV_S}/{x}' for x in os.listdir(CV_S)]
 PATHS_S += [f'{NLP_S}/{x}' for x in os.listdir(NLP_S)]
-CV_R = 'out/baseline_results'
-NLP_R = 'out/results-nlp-baseline-10-21-2021-final'
-PATHS_R = [f'{CV_R}/{x}' for x in os.listdir(CV_R)]
-PATHS_R += [f'{NLP_R}/{x}' for x in os.listdir(NLP_R)]
 
 SEP = '$$$$'
 MCS = 100
@@ -86,6 +84,41 @@ def make_df(paths, mcol):
         + df['experiment_seed'].astype(str)
     idx = (df['uid+e1'] == df['uid+e2'])
     return df[idx].copy()
+
+def adaptability_small(rf, bf, sf):
+    mpl.rcParams['font.size'] = 18
+    rf['sample-dependent'] = rf['ben_david_lambda']
+    bf['sample-independent'] = get_holdout_lambda(bf)
+    print('sdp', rf['sample-dependent'].mean(), rf['sample-dependent'].std())
+    print('sid', bf['sample-independent'].mean(), bf['sample-independent'].std())
+    sf['Germain et al.'] = get_germain_lambda(sf)
+    m = rf['sample-dependent'].min()
+    M = rf['sample-dependent'].max()
+    m = min(bf['sample-independent'].min(), m)
+    m = min(sf['Germain et al.'].min(), m)
+    M = max(bf['sample-independent'].max(), M)
+    M = max(sf['Germain et al.'].max(), M)
+    fig, ax = plt.subplots(1, 2, figsize=(8, 2.5), sharex=True,
+        sharey=True)
+    ax.flat[0].hist(rf['sample-dependent'], 
+        label='Ours', range=(m,M),
+        bins=10, alpha=1, color='b')
+    ax.flat[0].legend()
+    ax.flat[0].set_ylabel('Count')
+    ax.flat[0].set_xlabel('Upperbound')
+    ax.flat[0].set_yticks([200,500,800])
+    ax.flat[1].hist(bf['sample-independent'], 
+        label='Ben-David et al.', range=(m,M),
+        bins=10, alpha=1, color='r')
+    ax.flat[1].set_xlabel('Upperbound')
+    ax.flat[1].legend()
+    # ax.flat[2].hist(sf['Germain et al.'], 
+    #     label='Germain et al.', range=(m,M),
+    #     bins=10, alpha=1, color='g')
+    # ax.flat[2].set_xlabel('Upperbound')
+    # ax.flat[2].legend()
+    plt.tight_layout()
+    plt.savefig('results/adaptability_small')
 
 def adaptability(rf, bf, sf):
     mpl.rcParams['font.size'] = 18
@@ -238,93 +271,148 @@ def barplot(x, y, filename):
     plt.savefig(filename)
     plt.clf()
 
-
-def theorem_one_plot(df):
-    fig, axes = plt.subplots(1, 3, sharey=True, figsize=(8,4))
-    df['error_gap'] = df['transfer_error'] - df['train_error']
-    x = df['error_gap'].abs()
-    df['abs_error_gap'] = x
-    df['bias'] = df['our_h_divergence'] - df['abs_error_gap']
-    df['lambda'] = df['ben_david_lambda']
-    df['discrepancy'] = df['our_h_divergence']
-    sns.scatterplot(ax=axes[0], data=df, x="lambda", y="bias")
-    sns.scatterplot(ax=axes[1], data=df, x="discrepancy", y="bias")
-    axes[2].hist(df["bias"], orientation="horizontal")
-    axes[2].set_xlabel('count')
-    #sns.scatterplot(ax=axes[2], data=df, x="our_h_divergence", y="bias")
-    #sns.histplot(ax=axes[2], data=df, y="bias")
-    plt.show()
-    plt.savefig("plots/theorem_one_plot")
-    plt.clf()
-
+# def theorem_one_plot(df):
+#     fig, axes = plt.subplots(1, 3, sharey=True, figsize=(8,4))
+#     df['error_gap'] = df['transfer_error'] - df['train_error']
+#     x = df['error_gap'].abs()
+#     df['abs_error_gap'] = x
+#     df['bias'] = df['our_h_divergence'] - df['abs_error_gap']
+#     df['lambda'] = df['ben_david_lambda']
+#     df['discrepancy'] = df['our_h_divergence']
+#     sns.scatterplot(ax=axes[0], data=df, x="lambda", y="bias")
+#     sns.scatterplot(ax=axes[1], data=df, x="discrepancy", y="bias")
+#     axes[2].hist(df["bias"], orientation="horizontal")
+#     axes[2].set_xlabel('count')
+#     #sns.scatterplot(ax=axes[2], data=df, x="our_h_divergence", y="bias")
+#     #sns.histplot(ax=axes[2], data=df, y="bias")
+#     plt.show()
+#     plt.savefig("plots/theorem_one_plot")
+#     plt.clf()
 
 if __name__ == '__main__':
-    #rf = make_df(PATHS, 'ben_david_lambda')
-    #bf = make_df(PATHS_LB, get_holdout_lambda)
-    #sf = make_df(PATHS_S, get_germain_lambda)
-    #adaptability(rf, bf, sf)
-    #sf = make_df(PATHS_S, None)
-    #rho(sf)
+    # # # Used for most recent version of UAI # # #
+    # # in combination with some older results
+    rf = make_df(PATHS, 'ben_david_lambda')
+    bf = make_df(PATHS_LB, get_holdout_lambda)
+    sf = make_df(PATHS_S, get_germain_lambda)
+    adaptability(rf, bf, sf)
+    adaptability_small(rf, bf, sf)
+    sf = make_df(PATHS_S, None)
+    bf = make_df(PATHS_LB, None)
+    print(sf)
+    print(bf)
+    # rho(sf)
     rf = make_df(PATHS, None)
-    #error(rf)
-    #c = spearman_rank_correlation(rf, 'h_class_divergence')
+    print(rf)
+    # error(rf)
+    spearman_rank_correlation = pearson_correlation
+    c = spearman_rank_correlation(rf, 'h_class_divergence')
     h = spearman_rank_correlation(rf, 'our_h_divergence')
-    f = spearman_rank_correlation(rf, 'frs')
-    k = spearman_rank_correlation(rf, 'knn')
-    e = spearman_rank_correlation(rf, 'energy')
-    m = spearman_rank_correlation(rf, 'mmd')
-    #print('H Div Corr: ', c)
+    b = spearman_rank_correlation(rf, 'mmd_bbsd')
+
+    print('H Div Corr: ', c)
     print('Our H Div Corr: ', h)
-    print('FRS: ', f)
-    print('KNN: ', k)
-    print('Energy: ', e)
-    print('MMD: ', m)
-    x = ['frs', 'knn', 'energy', 'mmd', 'mod h div']
-    y = [f, k, e, m, h]
-    barplot(x, y, 'results/spearmans_rho_values')
-    #c = pearson_correlation(rf, 'h_class_divergence')
-    h = pearson_correlation(rf, 'our_h_divergence')
-    f = pearson_correlation(rf, 'frs')
-    k = pearson_correlation(rf, 'knn')
-    e = pearson_correlation(rf, 'energy')
-    m = pearson_correlation(rf, 'mmd')
-    #print('H Div Corr: ', c)
-    print('Our H Div Corr: ', h)
-    print('FRS: ', f)
-    print('KNN: ', k)
-    print('Energy: ', e)
-    print('MMD: ', m)
-    x = ['frs', 'knn', 'energy', 'mmd', 'mod h div']
-    y = [f, k, e, m, h]
-    barplot(x, y, 'results/pearson_values')
+    print('MMD BBSD', b)
+    name = lambda s: s.split('-')[0]
+    digits = ['mnist', 'usps', 'svhn']
+    disc = ['pdtb', 'biodrb', 'ted',
+        'reddit', 'voyage', 'news', 'interview',
+        'whow', 'fiction', 'academic', 'bio', 'RST']
+    images = ['photo', 'art_painting', 'cartoon',
+        'sketch', 'art', 'clipart', 'product', 'real_world']
+    pacs = ['photo', 'art_painting', 'cartoon', 'sketch']
+    oh = ['art', 'clipart', 'product', 'real_world']
+    amaz = ['books', 'dvd', 'electronics', 'kitchen']
+    match = lambda n, arr: any(x in n for x in arr)
+    groups = [('digits', digits), ('disc', disc), 
+        ('images', images), ('amaz', amaz), 
+        ('pacs', pacs), ('oh', oh)]
+    for s, names in groups:
+        _match = lambda n: match(n, names)
+        idx = rf['source'].map(name).map(_match)
+        idx = idx | rf['target'].map(name).map(_match)
+        rfi = rf[idx].copy()
+        heatmap, xedges, yedges = np.histogram2d(rfi['our_h_divergence'], 
+            rfi['error_gap'], bins=50, range=((0,1),(0,1)))
+        extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+        fig, ax = plt.subplots()
+        plt.clf()
+        plt.imshow(heatmap.T, extent=extent, origin='lower')
+        plt.savefig(f'results/{s}')
+        heatmap, xedges, yedges = np.histogram2d(rfi['h_class_divergence'], 
+            rfi['error_gap'], bins=50, range=((0,1),(0,1)))
+        extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+        plt.clf()
+        plt.imshow(heatmap.T, extent=extent, origin='lower')
+        plt.savefig(f'results/{s}-indep')
+        ci = spearman_rank_correlation(rfi, 'h_class_divergence')
+        hi = spearman_rank_correlation(rfi, 'our_h_divergence')
+        bi = spearman_rank_correlation(rfi, 'mmd_bbsd')
+        print(s, 'H Div Corr: ', ci)
+        print(s, 'Our H Div Corr: ', hi)
+        print(s, 'MMD BBSD: ', bi)
 
-    plot_metric_vs_hdiv(rf, "frs")
-    plot_metric_vs_hdiv(rf, "knn")
-    plot_metric_vs_hdiv(rf, "energy")
-    plot_metric_vs_hdiv(rf, "mmd")
+    # # # Used, in part, for ACL Paper # # #
+    # rf = make_df(PATHS, None)
+    # # error(rf)
+    # # c = spearman_rank_correlation(rf, 'h_class_divergence')
+    # h = spearman_rank_correlation(rf, 'our_h_divergence')
+    # f = spearman_rank_correlation(rf, 'frs')
+    # k = spearman_rank_correlation(rf, 'knn')
+    # e = spearman_rank_correlation(rf, 'energy')
+    # m = spearman_rank_correlation(rf, 'mmd')
+    # # print('H Div Corr: ', c)
+    # print('Our H Div Corr: ', h)
+    # print('FRS: ', f)
+    # print('KNN: ', k)
+    # print('Energy: ', e)
+    # print('MMD: ', m)
+    # x = ['frs', 'knn', 'energy', 'mmd', 'mod h div']
+    # y = [f, k, e, m, h]
+    # barplot(x, y, 'results/spearmans_rho_values')
+    # # c = pearson_correlation(rf, 'h_class_divergence')
+    # h = pearson_correlation(rf, 'our_h_divergence')
+    # f = pearson_correlation(rf, 'frs')
+    # k = pearson_correlation(rf, 'knn')
+    # e = pearson_correlation(rf, 'energy')
+    # m = pearson_correlation(rf, 'mmd')
+    # # print('H Div Corr: ', c)
+    # print('Our H Div Corr: ', h)
+    # print('FRS: ', f)
+    # print('KNN: ', k)
+    # print('Energy: ', e)
+    # print('MMD: ', m)
+    # x = ['frs', 'knn', 'energy', 'mmd', 'mod h div']
+    # y = [f, k, e, m, h]
+    # barplot(x, y, 'results/pearson_values')
 
-    plot_metric_vs_modified_hdiv(rf, "frs")
-    plot_metric_vs_modified_hdiv(rf, "frs")
-    plot_metric_vs_modified_hdiv(rf, "energy")
-    plot_metric_vs_modified_hdiv(rf, "mmd")
+    # # plot_metric_vs_hdiv(rf, "frs")
+    # # plot_metric_vs_hdiv(rf, "knn")
+    # # plot_metric_vs_hdiv(rf, "energy")
+    # # plot_metric_vs_hdiv(rf, "mmd")
 
-    plot_modified_hdiv_vs_metric(rf, "frs")
-    plot_modified_hdiv_vs_metric(rf, "knn")
-    plot_modified_hdiv_vs_metric(rf, "energy")
-    plot_modified_hdiv_vs_metric(rf, "mmd")
+    # # plot_metric_vs_modified_hdiv(rf, "frs")
+    # # plot_metric_vs_modified_hdiv(rf, "frs")
+    # # plot_metric_vs_modified_hdiv(rf, "energy")
+    # # plot_metric_vs_modified_hdiv(rf, "mmd")
 
-    theorem_one_plot(rf)
+    # # plot_modified_hdiv_vs_metric(rf, "frs")
+    # # plot_modified_hdiv_vs_metric(rf, "knn")
+    # # plot_modified_hdiv_vs_metric(rf, "energy")
+    # # plot_modified_hdiv_vs_metric(rf, "mmd")
+
+    # # theorem_one_plot(rf)
     
-    #c = spearman_rank_correlation(rf, 'our_h_divergence')
-    #print('h Div Corr: ', c)
-    #sf = make_df(PATHS_S, None)
-    #sf['germain_dis_div'] = get_dis_div(sf)
-    #c = spearman_rank_correlation(sf, 'germain_dis_div')
-    #print('Germain Corr: ', c)
-    ## do last to avoid style conflicts
-    #rf = make_df(PATHS, 'ben_david_lambda')
-    #hue_lambda(rf)
-    #df = make_df(PATHS, None)
-    #rf = make_df(PATHS_R, None)
-    #hue_error_gap(df, rf)
+    # # # Used, in part, for an older verions of UAI # # #
+    # # Some results may have been re-used when applicable
+    # # c = spearman_rank_correlation(rf, 'our_h_divergence')
+    # # print('h Div Corr: ', c)
+    # # sf = make_df(PATHS_S, None)
+    # # sf['germain_dis_div'] = get_dis_div(sf)
+    # # c = spearman_rank_correlation(sf, 'germain_dis_div')
+    # # print('Germain Corr: ', c)
+    # # # do last to avoid style conflicts
+    # # rf = make_df(PATHS, 'ben_david_lambda')
+    # # hue_lambda(rf)
+    # # df = make_df(PATHS, None)
 

@@ -1,4 +1,4 @@
-from .run import GROUPS
+from ..run import GROUPS
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
