@@ -20,3 +20,17 @@ ACL code: https://github.com/anthonysicilia/change-that-matters-ACL2022
 ## Running this code
 For ease of use, we have created a python script ```experiments/make_scripts.py``` to generate example bash scripts. In many cases, these may be exactly identical to the scripts used to generate results in the paper. Albeit, we encourage second checking the accompanying manuscripts to verify parameters etc. The bash scripts interfrace with the experiments module to create the raw results for each experiment. Following this, code for summarizing raw results can be run using ```experiments/results.py```. The latter script has undergone a number of different iterations (i.e., for each individual paper). The comments on this script may help to identify relevant code. As a final note, ```experiments``` is a module, so scripts should be run accordingly. Feel free to contact us with any questions (e.g., by raising an issue here or using the contact information available in the accompanying papers).
 
+### Notable Versions
+
+Code was run using the following versions (some packages are only used by shared repos):
+
+ - python==3.7.4
+ - matplotlib==3.5.0
+ - numpy==1.21.2
+ - pandas==1.3.5
+ - scipy==1.7.3
+ - seaborn==0.12.1
+ - torch==1.10.2 (build py3.7_cuda10.2_cudnn7.6.5_0)
+ - tqdm==4.45.0
+ - pillow==8.4.0
+ - statsmodels==0.13.0
